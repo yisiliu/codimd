@@ -393,45 +393,47 @@ git commit -m "feat(invite): add Invite model with isRedeemable + migration"
 
 - [ ] **Step 1: Write the failing test**
 
+> The middleware delegates rejection to `lib/response.errorForbidden`. The real `errorForbidden` builds a URL from `config.serverURL` (which is empty under `NODE_ENV=test`) and so throws "Invalid URL" on the anonymous branch. The unit test only cares about requireTeacher's branching (next vs. reject), so **mock `lib/response`** rather than exercise the real one.
+
 ```js
 'use strict'
 /* eslint-env node, mocha */
 const assert = require('assert')
-const requireTeacher = require('../../lib/web/middleware/requireTeacher')
+const mock = require('mock-require')
 
-// The real lib/response.errorForbidden may call req.flash + res.redirect (anonymous)
-// or res.status().render() (logged-in non-teacher). Stub both so the rejected
-// branches don't throw, and just assert whether next() ran.
-function ctx (reqOverrides) {
-  const state = { next: false, rejected: false }
-  const req = Object.assign({ flash: () => {} }, reqOverrides)
-  const res = {
-    redirect () { state.rejected = true },
-    status () { return this },
-    render () { state.rejected = true }
-  }
-  requireTeacher(req, res, () => { state.next = true })
-  return state
+// Stub lib/response so the test exercises requireTeacher's branching only,
+// not the real errorForbidden (which needs config.serverURL + a real res).
+let rejected
+mock('../../lib/response', { errorForbidden: () => { rejected = true } })
+const requireTeacher = mock.reRequire('../../lib/web/middleware/requireTeacher')
+
+function run (reqOverrides) {
+  rejected = false
+  let next = false
+  requireTeacher(Object.assign({ flash: () => {} }, reqOverrides), {}, () => { next = true })
+  return { next, rejected }
 }
 
 describe('requireTeacher', function () {
+  after(() => mock.stopAll())
+
   it('calls next for an active teacher', function () {
-    const s = ctx({ isAuthenticated: () => true, user: { role: 'teacher', active: true } })
+    const s = run({ isAuthenticated: () => true, user: { role: 'teacher', active: true } })
     assert.strictEqual(s.next, true)
     assert.strictEqual(s.rejected, false)
   })
   it('rejects a student', function () {
-    const s = ctx({ isAuthenticated: () => true, user: { role: 'student', active: true } })
+    const s = run({ isAuthenticated: () => true, user: { role: 'student', active: true } })
     assert.strictEqual(s.next, false)
     assert.strictEqual(s.rejected, true)
   })
   it('rejects an inactive teacher', function () {
-    const s = ctx({ isAuthenticated: () => true, user: { role: 'teacher', active: false } })
+    const s = run({ isAuthenticated: () => true, user: { role: 'teacher', active: false } })
     assert.strictEqual(s.next, false)
     assert.strictEqual(s.rejected, true)
   })
   it('rejects an anonymous request', function () {
-    const s = ctx({ isAuthenticated: () => false })
+    const s = run({ isAuthenticated: () => false })
     assert.strictEqual(s.next, false)
     assert.strictEqual(s.rejected, true)
   })
@@ -457,7 +459,7 @@ module.exports = function requireTeacher (req, res, next) {
 }
 ```
 
-> Check `lib/response.js` for the exact forbidden helper name; if it differs, use it. The test stubs `res.status().render()` so it passes regardless.
+> Check `lib/response.js` for the exact forbidden helper name (`errorForbidden` — confirmed present). The test mocks `lib/response`, so it asserts only requireTeacher's branching, independent of the real helper's URL/redirect behavior.
 
 - [ ] **Step 4: Run to verify pass + lint + commit**
 
