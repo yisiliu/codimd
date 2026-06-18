@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="<%= getLocale() %>">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= __('Admin') %></title>
+    <link rel="stylesheet" href="<%- serverURL %>/css/font.css">
+    <link rel="stylesheet" href="<%- serverURL %>/css/center.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-12">
+                <h2><%= __('Users') %></h2>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th><%= __('E-Mail') %></th>
+                            <th><%= __('Role') %></th>
+                            <th><%= __('Active') %></th>
+                            <th><%= __('Joined') %></th>
+                            <th><%= __('Actions') %></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% users.forEach(function (u) { %>
+                        <% var isSelf = me && String(me.id) === String(u.id) %>
+                        <tr>
+                            <td><%= u.email %></td>
+                            <td><%= u.role %></td>
+                            <td><%= u.active ? __('Yes') : __('No') %></td>
+                            <td><%= u.createdAt %></td>
+                            <td>
+                                <% if (u.active) { %>
+                                <form method="post" action="<%- serverURL %>/admin/users/<%= u.id %>/deactivate" style="display:inline" <% if (isSelf) { %>onsubmit="return confirm('<%= __('Deactivate your own account?') %>')"<% } %>>
+                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                    <button type="submit" class="btn btn-xs btn-warning"><%= __('Deactivate') %></button>
+                                </form>
+                                <% } else { %>
+                                <form method="post" action="<%- serverURL %>/admin/users/<%= u.id %>/activate" style="display:inline">
+                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                    <button type="submit" class="btn btn-xs btn-success"><%= __('Activate') %></button>
+                                </form>
+                                <% } %>
+                                <% if (u.role === 'teacher') { %>
+                                <form method="post" action="<%- serverURL %>/admin/users/<%= u.id %>/role" style="display:inline" <% if (isSelf) { %>onsubmit="return confirm('<%= __('Demote your own account?') %>')"<% } %>>
+                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                    <input type="hidden" name="role" value="student">
+                                    <button type="submit" class="btn btn-xs btn-default"><%= __('Demote') %></button>
+                                </form>
+                                <% } else { %>
+                                <form method="post" action="<%- serverURL %>/admin/users/<%= u.id %>/role" style="display:inline">
+                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                    <input type="hidden" name="role" value="teacher">
+                                    <button type="submit" class="btn btn-xs btn-default"><%= __('Promote') %></button>
+                                </form>
+                                <% } %>
+                                <form method="post" action="<%- serverURL %>/admin/users/<%= u.id %>/reset-password" style="display:inline">
+                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                    <input type="password" name="password" placeholder="<%= __('New password') %>" required>
+                                    <button type="submit" class="btn btn-xs btn-default"><%= __('Reset password') %></button>
+                                </form>
+                            </td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+
+                <h2><%= __('Invites') %></h2>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th><%= __('Role') %></th>
+                            <th><%= __('Used') %></th>
+                            <th><%= __('Expires') %></th>
+                            <th><%= __('Link') %></th>
+                            <th><%= __('Actions') %></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% invites.forEach(function (i) { %>
+                        <tr>
+                            <td><%= i.role %></td>
+                            <td><%= i.usedCount %> / <%= i.maxUses %></td>
+                            <td><%= i.expiresAt %></td>
+                            <td><a href="<%- serverURL %>/invite/<%= i.token %>"><%- serverURL %>/invite/<%= i.token %></a></td>
+                            <td>
+                                <form method="post" action="<%- serverURL %>/admin/invites/<%= i.id %>/revoke" style="display:inline">
+                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                    <button type="submit" class="btn btn-xs btn-danger"><%= __('Revoke') %></button>
+                                </form>
+                            </td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+
+                <h3><%= __('Create invite') %></h3>
+                <form method="post" action="<%- serverURL %>/admin/invites" class="form-inline" enctype="application/x-www-form-urlencoded">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <div class="form-group">
+                        <select name="role" class="form-control">
+                            <option value="student"><%= __('student') %></option>
+                            <option value="teacher"><%= __('teacher') %></option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <input type="number" name="maxUses" class="form-control" min="1" value="1" placeholder="<%= __('Max uses') %>">
+                    </div>
+                    <div class="form-group">
+                        <input type="number" name="expiresInDays" class="form-control" min="1" value="7" placeholder="<%= __('Expires in days') %>">
+                    </div>
+                    <button type="submit" class="btn btn-primary"><%= __('Create') %></button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
