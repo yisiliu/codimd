@@ -1,25 +1,23 @@
 'use strict'
 /* eslint-env node, mocha */
 const assert = require('assert')
-const mock = require('mock-require')
-
-// Stub disconnectUser BEFORE requiring admin, so we can assert the deactivation
-// wiring calls it with the right user id (the helper itself is tested in Task 10).
-const disconnected = []
-mock('../../lib/realtime/disconnectUser', (realtime, id) => disconnected.push(id))
 
 const { models, resetDb } = require('../helpers/db')
 const admin = require('../../lib/admin/index')
+const realtime = require('../../lib/realtime/realtime')
+const { removeLibModuleCache } = require('../realtime/utils')
 
 async function mkTeacher (email) { return models.User.create({ email, password: 'secret12', role: 'teacher' }) }
 
 describe('admin user lifecycle', function () {
   this.timeout(10000)
-  beforeEach(async function () {
-    disconnected.length = 0
-    await resetDb()
-  })
-  after(() => mock.stopAll())
+  beforeEach(resetDb)
+  afterEach(function () { realtime.io = null })
+  // Requiring the real realtime singleton above pollutes the require cache for the
+  // realtime suite (which re-requires realtime with mocked deps). Evict the lib
+  // module cache we populated so those tests start fresh. Other test files captured
+  // their references at load time, before this hook runs, so they are unaffected.
+  after(removeLibModuleCache)
 
   it('refuses to deactivate the last active teacher', async function () {
     const t = await mkTeacher('only@x.io')
@@ -30,8 +28,11 @@ describe('admin user lifecycle', function () {
   it('disconnects the deactivated user\'s live sockets', async function () {
     const t1 = await mkTeacher('w1@x.io')
     await mkTeacher('w2@x.io')
+    // Inject a fake io with a socket for t1 and assert the REAL disconnectUser drops it.
+    const dropped = []
+    realtime.io = { sockets: { sockets: { s1: { request: { user: { id: t1.id } }, disconnect () { dropped.push('s1') } } } } }
     await admin.deactivateUser(t1.id)
-    assert.ok(disconnected.includes(t1.id))
+    assert.deepStrictEqual(dropped, ['s1'])
   })
 
   it('allows deactivating a teacher when another active teacher exists', async function () {
