@@ -2,126 +2,166 @@
 <html lang="<%= getLocale() %>">
 
 <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= __('Admin') %></title>
-    <link rel="stylesheet" href="<%- serverURL %>/css/font.css">
-    <link rel="stylesheet" href="<%- serverURL %>/css/center.css">
+    <%- include('../index/head') %>
+    <style nonce="<%= nonce %>">
+        body { background-color: #f7f7f9; color: #333; }
+        .admin-wrap { max-width: 1040px; margin: 0 auto; padding: 24px 15px 60px; }
+        .admin-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 24px; }
+        .admin-head .brand { font-size: 22px; font-weight: 600; }
+        .admin-head .brand .fa { margin-right: 6px; }
+        .admin-head .brand small { opacity: .55; font-weight: 400; }
+        .admin-panel { margin-bottom: 22px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+        .admin-panel .panel-heading { font-weight: 600; }
+        .admin-panel .table { margin-bottom: 0; }
+        .admin-panel .table > thead > tr > th { border-bottom: 1px solid #eee; color: #999; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+        .admin-panel td { vertical-align: middle !important; }
+        .invite-link { font-size: 12px; word-break: break-all; }
+        .row-actions form { display: inline-block; margin: 0 2px 0 0; }
+        .reset-form { margin-top: 8px; max-width: 280px; }
+    </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="row">
-            <div class="col-sm-12">
-                <h2><%= __('Users') %></h2>
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th><%= __('E-Mail') %></th>
-                            <th><%= __('Role') %></th>
-                            <th><%= __('Active') %></th>
-                            <th><%= __('Joined') %></th>
-                            <th><%= __('Actions') %></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% users.forEach(function (u) { %>
-                        <% var isSelf = me && String(me.id) === String(u.id) %>
-                        <tr>
-                            <td><%= u.email %></td>
-                            <td><%= u.role %></td>
-                            <td><%= u.active ? __('Yes') : __('No') %></td>
-                            <td><%= u.createdAt %></td>
-                            <td>
-                                <% if (u.active) { %>
-                                <form method="post" action="<%- serverURL %>/admin/users/<%= u.id %>/deactivate" style="display:inline" <% if (isSelf) { %>data-confirm="<%= __('Deactivate your own account?') %>"<% } %>>
-                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                                    <button type="submit" class="btn btn-xs btn-warning"><%= __('Deactivate') %></button>
-                                </form>
-                                <% } else { %>
-                                <form method="post" action="<%- serverURL %>/admin/users/<%= u.id %>/activate" style="display:inline">
-                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                                    <button type="submit" class="btn btn-xs btn-success"><%= __('Activate') %></button>
-                                </form>
-                                <% } %>
-                                <% if (u.role === 'teacher') { %>
-                                <form method="post" action="<%- serverURL %>/admin/users/<%= u.id %>/role" style="display:inline" <% if (isSelf) { %>data-confirm="<%= __('Demote your own account?') %>"<% } %>>
-                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                                    <input type="hidden" name="role" value="student">
-                                    <button type="submit" class="btn btn-xs btn-default"><%= __('Demote') %></button>
-                                </form>
-                                <% } else { %>
-                                <form method="post" action="<%- serverURL %>/admin/users/<%= u.id %>/role" style="display:inline">
-                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                                    <input type="hidden" name="role" value="teacher">
-                                    <button type="submit" class="btn btn-xs btn-default"><%= __('Promote') %></button>
-                                </form>
-                                <% } %>
-                                <form method="post" action="<%- serverURL %>/admin/users/<%= u.id %>/reset-password" style="display:inline">
-                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                                    <input type="password" name="password" placeholder="<%= __('New password') %>" required>
-                                    <button type="submit" class="btn btn-xs btn-default"><%= __('Reset password') %></button>
-                                </form>
-                            </td>
-                        </tr>
-                        <% }) %>
-                    </tbody>
-                </table>
+    <div class="admin-wrap">
+        <div class="admin-head">
+            <span class="brand"><i class="fa fa-file-text"></i> CodiMD <small>· <%= __('Admin') %></small></span>
+            <span>
+                <i class="fa fa-user-circle-o"></i> <%= me.email %>&ensp;
+                <a href="<%- serverURL %>/" class="btn btn-sm btn-default"><i class="fa fa-home"></i> <%= __('Home') %></a>
+                <a href="<%- serverURL %>/logout" class="btn btn-sm btn-default"><i class="fa fa-sign-out"></i> <%= __('Sign Out') %></a>
+            </span>
+        </div>
 
-                <h2><%= __('Invites') %></h2>
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th><%= __('Role') %></th>
-                            <th><%= __('Used') %></th>
-                            <th><%= __('Expires') %></th>
-                            <th><%= __('Link') %></th>
-                            <th><%= __('Actions') %></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% invites.forEach(function (i) { %>
-                        <tr>
-                            <td><%= i.role %></td>
-                            <td><%= i.usedCount %> / <%= i.maxUses %></td>
-                            <td><%= i.expiresAt %></td>
-                            <td><a href="<%- serverURL %>/invite/<%= i.token %>"><%- serverURL %>/invite/<%= i.token %></a></td>
-                            <td>
-                                <form method="post" action="<%- serverURL %>/admin/invites/<%= i.id %>/revoke" style="display:inline">
-                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                                    <button type="submit" class="btn btn-xs btn-danger"><%= __('Revoke') %></button>
-                                </form>
-                            </td>
-                        </tr>
-                        <% }) %>
-                    </tbody>
-                </table>
+        <% errorMessages.forEach(function (m) { %>
+        <div class="alert alert-danger"><i class="fa fa-exclamation-circle"></i> <%= m %></div>
+        <% }) %>
+        <% infoMessages.forEach(function (m) { %>
+        <div class="alert alert-success"><i class="fa fa-check-circle"></i> <%= m %></div>
+        <% }) %>
 
-                <h3><%= __('Create invite') %></h3>
-                <form method="post" action="<%- serverURL %>/admin/invites" class="form-inline" enctype="application/x-www-form-urlencoded">
+        <div class="panel panel-default admin-panel">
+            <div class="panel-heading"><i class="fa fa-ticket"></i> <%= __('Create invite') %></div>
+            <div class="panel-body">
+                <form method="post" action="<%- serverURL %>/admin/invites" class="form-inline">
                     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <div class="form-group">
+                        <label><%= __('Role') %></label>
                         <select name="role" class="form-control">
-                            <option value="student"><%= __('student') %></option>
-                            <option value="teacher"><%= __('teacher') %></option>
+                            <option value="student"><%= __('Student') %></option>
+                            <option value="teacher"><%= __('Teacher') %></option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <input type="number" name="maxUses" class="form-control" min="1" value="1" placeholder="<%= __('Max uses') %>">
+                        <label><%= __('Max uses') %></label>
+                        <input type="number" name="maxUses" class="form-control" min="1" value="1" style="width: 90px;">
                     </div>
                     <div class="form-group">
-                        <input type="number" name="expiresInDays" class="form-control" min="1" value="7" placeholder="<%= __('Expires in days') %>">
+                        <label><%= __('Expires in (days)') %></label>
+                        <input type="number" name="expiresInDays" class="form-control" min="1" value="7" style="width: 90px;">
                     </div>
-                    <button type="submit" class="btn btn-primary"><%= __('Create') %></button>
+                    <button type="submit" class="btn btn-success"><i class="fa fa-plus"></i> <%= __('Create invite') %></button>
                 </form>
+                <p class="help-block" style="margin: 10px 0 0;"><%= __('Share a reusable link for a whole class, or a single-use link for one person.') %></p>
             </div>
         </div>
+
+        <div class="panel panel-default admin-panel">
+            <div class="panel-heading"><i class="fa fa-link"></i> <%= __('Active invites') %> <span class="badge"><%= invites.length %></span></div>
+            <table class="table table-striped">
+                <thead>
+                    <tr><th><%= __('Role') %></th><th><%= __('Uses') %></th><th><%= __('Expires') %></th><th><%= __('Link') %></th><th></th></tr>
+                </thead>
+                <tbody>
+                    <% if (invites.length === 0) { %>
+                    <tr><td colspan="5" class="text-center text-muted" style="padding: 18px;"><%= __('No active invites yet.') %></td></tr>
+                    <% } %>
+                    <% invites.forEach(function (i) { %>
+                    <tr>
+                        <td><span class="label label-<%= i.role === 'teacher' ? 'primary' : 'default' %>"><%= i.role %></span></td>
+                        <td><%= i.usedCount %> / <%= i.maxUses %></td>
+                        <td><%= new Date(i.expiresAt).toISOString().slice(0, 10) %></td>
+                        <td><code class="invite-link"><%- serverURL %>/invite/<%= i.token %></code></td>
+                        <td class="text-right row-actions">
+                            <form method="post" action="<%- serverURL %>/admin/invites/<%= i.id %>/revoke" data-confirm="<%= __('Revoke this invite?') %>">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <button type="submit" class="btn btn-xs btn-danger"><i class="fa fa-times"></i> <%= __('Revoke') %></button>
+                            </form>
+                        </td>
+                    </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="panel panel-default admin-panel">
+            <div class="panel-heading"><i class="fa fa-users"></i> <%= __('Members') %> <span class="badge"><%= users.length %></span></div>
+            <table class="table table-striped">
+                <thead>
+                    <tr><th><%= __('E-Mail') %></th><th><%= __('Role') %></th><th><%= __('Status') %></th><th><%= __('Joined') %></th><th class="text-right"><%= __('Actions') %></th></tr>
+                </thead>
+                <tbody>
+                    <% users.forEach(function (u) { var isSelf = me && String(me.id) === String(u.id) %>
+                    <tr>
+                        <td><%= u.email || __('(external account)') %><% if (isSelf) { %> <span class="label label-info"><%= __('you') %></span><% } %></td>
+                        <td><span class="label label-<%= u.role === 'teacher' ? 'primary' : 'default' %>"><%= u.role %></span></td>
+                        <td>
+                            <% if (u.active) { %><span class="text-success"><i class="fa fa-check-circle"></i> <%= __('active') %></span>
+                            <% } else { %><span class="text-muted"><i class="fa fa-ban"></i> <%= __('deactivated') %></span><% } %>
+                        </td>
+                        <td><%= new Date(u.createdAt).toISOString().slice(0, 10) %></td>
+                        <td class="text-right row-actions">
+                            <% if (u.role === 'teacher') { %>
+                            <form method="post" action="<%- serverURL %>/admin/users/<%= u.id %>/role"<% if (isSelf) { %> data-confirm="<%= __('Demote your own account?') %>"<% } %>>
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <input type="hidden" name="role" value="student">
+                                <button type="submit" class="btn btn-xs btn-default"><i class="fa fa-level-down"></i> <%= __('Demote') %></button>
+                            </form>
+                            <% } else { %>
+                            <form method="post" action="<%- serverURL %>/admin/users/<%= u.id %>/role">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <input type="hidden" name="role" value="teacher">
+                                <button type="submit" class="btn btn-xs btn-default"><i class="fa fa-level-up"></i> <%= __('Promote') %></button>
+                            </form>
+                            <% } %>
+                            <% if (u.active) { %>
+                            <form method="post" action="<%- serverURL %>/admin/users/<%= u.id %>/deactivate"<% if (isSelf) { %> data-confirm="<%= __('Deactivate your own account?') %>"<% } %>>
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <button type="submit" class="btn btn-xs btn-warning"><i class="fa fa-ban"></i> <%= __('Deactivate') %></button>
+                            </form>
+                            <% } else { %>
+                            <form method="post" action="<%- serverURL %>/admin/users/<%= u.id %>/activate">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <button type="submit" class="btn btn-xs btn-success"><i class="fa fa-check"></i> <%= __('Activate') %></button>
+                            </form>
+                            <% } %>
+                            <button type="button" class="btn btn-xs btn-default" data-reset-toggle="reset-<%= u.id %>"><i class="fa fa-key"></i></button>
+                            <form method="post" action="<%- serverURL %>/admin/users/<%= u.id %>/reset-password" id="reset-<%= u.id %>" class="reset-form pull-right" style="display: none;">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <div class="input-group input-group-sm">
+                                    <input type="password" name="password" class="form-control" placeholder="<%= __('New password') %>" minlength="8" required>
+                                    <span class="input-group-btn"><button type="submit" class="btn btn-default"><%= __('Set') %></button></span>
+                                </div>
+                            </form>
+                        </td>
+                    </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+
+        <p class="text-center text-muted" style="margin-top: 8px;"><%- __('Powered by %s', '<a href="https://github.com/hackmdio/codimd">CodiMD</a>') %></p>
     </div>
+
     <script nonce="<%= nonce %>">
       document.addEventListener('submit', function (e) {
         var msg = e.target.getAttribute('data-confirm')
         if (msg && !window.confirm(msg)) e.preventDefault()
+      })
+      document.addEventListener('click', function (e) {
+        var btn = e.target.closest && e.target.closest('[data-reset-toggle]')
+        if (!btn) return
+        var form = document.getElementById(btn.getAttribute('data-reset-toggle'))
+        if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none'
       })
     </script>
 </body>

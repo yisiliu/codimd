@@ -2,33 +2,35 @@
 <html lang="<%= getLocale() %>">
 
 <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= __('Register') %></title>
-    <link rel="stylesheet" href="<%- serverURL %>/css/font.css">
-    <link rel="stylesheet" href="<%- serverURL %>/css/center.css">
+    <%- include('../index/head') %>
 </head>
 
 <body>
-    <div class="container">
-        <div class="row">
-            <div class="col-sm-6 col-sm-offset-3">
-                <h2><%= __('Register') %></h2>
-                <form data-toggle="validator" role="form" method="post" action="<%- serverURL %>/invite/<%= token %>" enctype="application/x-www-form-urlencoded">
-                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                    <div class="form-group">
-                        <input type="email" class="form-control" name="email" placeholder="E-Mail" required>
-                        <span class="help-block control-label with-errors" style="display: inline;"></span>
+    <div class="site-wrapper">
+        <div class="site-wrapper-inner">
+            <div class="cover-container">
+                <div class="inner cover" style="margin-top: 8vh;">
+                    <h1 class="cover-heading"><i class="fa fa-file-text"></i> CodiMD</h1>
+                    <p class="lead"><%= __('You have been invited. Create your account to get started.') %></p>
+                    <div class="panel panel-default" style="max-width: 360px; margin: 24px auto 0; text-align: left;">
+                        <div class="panel-body">
+                            <% errorMessages.forEach(function (m) { %>
+                            <div class="alert alert-danger"><%= m %></div>
+                            <% }) %>
+                            <form method="post" action="<%- serverURL %>/invite/<%= token %>" data-toggle="validator" role="form">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <div class="form-group">
+                                    <input type="email" name="email" class="form-control" placeholder="<%= __('E-Mail') %>" required>
+                                </div>
+                                <div class="form-group">
+                                    <input type="password" name="password" class="form-control" placeholder="<%= __('Password') %>" minlength="8" required>
+                                </div>
+                                <button type="submit" class="btn btn-lg btn-success btn-block"><%= __('Create account') %></button>
+                            </form>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <input type="password" class="form-control" name="password" placeholder="Password" required>
-                        <span class="help-block control-label with-errors" style="display: inline;"></span>
-                    </div>
-                    <div class="form-group">
-                        <button type="submit" class="btn btn-primary"><%= __('Register') %></button>
-                    </div>
-                </form>
+                    <p style="margin-top: 16px;"><a href="<%- serverURL %>/" style="color: #fff;"><%= __('Already have an account? Sign in') %></a></p>
+                </div>
             </div>
         </div>
     </div>
