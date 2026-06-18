@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="<%= getLocale() %>">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= __('Register') %></title>
+    <link rel="stylesheet" href="<%- serverURL %>/css/font.css">
+    <link rel="stylesheet" href="<%- serverURL %>/css/center.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-6 col-sm-offset-3">
+                <h2><%= __('Register') %></h2>
+                <form data-toggle="validator" role="form" method="post" action="<%- serverURL %>/invite/<%= token %>" enctype="application/x-www-form-urlencoded">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <div class="form-group">
+                        <input type="email" class="form-control" name="email" placeholder="E-Mail" required>
+                        <span class="help-block control-label with-errors" style="display: inline;"></span>
+                    </div>
+                    <div class="form-group">
+                        <input type="password" class="form-control" name="password" placeholder="Password" required>
+                        <span class="help-block control-label with-errors" style="display: inline;"></span>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary"><%= __('Register') %></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
