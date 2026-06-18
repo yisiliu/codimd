@@ -35,7 +35,7 @@
                             <td><%= u.createdAt %></td>
                             <td>
                                 <% if (u.active) { %>
-                                <form method="post" action="<%- serverURL %>/admin/users/<%= u.id %>/deactivate" style="display:inline" <% if (isSelf) { %>onsubmit="return confirm('<%= __('Deactivate your own account?') %>')"<% } %>>
+                                <form method="post" action="<%- serverURL %>/admin/users/<%= u.id %>/deactivate" style="display:inline" <% if (isSelf) { %>data-confirm="<%= __('Deactivate your own account?') %>"<% } %>>
                                     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                                     <button type="submit" class="btn btn-xs btn-warning"><%= __('Deactivate') %></button>
                                 </form>
@@ -46,7 +46,7 @@
                                 </form>
                                 <% } %>
                                 <% if (u.role === 'teacher') { %>
-                                <form method="post" action="<%- serverURL %>/admin/users/<%= u.id %>/role" style="display:inline" <% if (isSelf) { %>onsubmit="return confirm('<%= __('Demote your own account?') %>')"<% } %>>
+                                <form method="post" action="<%- serverURL %>/admin/users/<%= u.id %>/role" style="display:inline" <% if (isSelf) { %>data-confirm="<%= __('Demote your own account?') %>"<% } %>>
                                     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                                     <input type="hidden" name="role" value="student">
                                     <button type="submit" class="btn btn-xs btn-default"><%= __('Demote') %></button>
@@ -118,6 +118,12 @@
             </div>
         </div>
     </div>
+    <script nonce="<%= nonce %>">
+      document.addEventListener('submit', function (e) {
+        var msg = e.target.getAttribute('data-confirm')
+        if (msg && !window.confirm(msg)) e.preventDefault()
+      })
+    </script>
 </body>
 
 </html>
