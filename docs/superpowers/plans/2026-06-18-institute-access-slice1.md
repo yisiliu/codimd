@@ -807,6 +807,22 @@ describe('redeemInvite', function () {
     const inv = await models.Invite.create({ role: 'student', maxUses: 1, revoked: true, expiresAt: future() })
     await assert.rejects(() => redeemInvite(inv.token, { email: 'no@x.io', password: 'secret12' }))
   })
+
+  it('drives the increment guard: a maxUses=2 link redeems exactly twice', async function () {
+    const inv = await models.Invite.create({ role: 'student', maxUses: 2, expiresAt: future() })
+    await redeemInvite(inv.token, { email: 'a1@x.io', password: 'secret12' })
+    await redeemInvite(inv.token, { email: 'a2@x.io', password: 'secret12' })
+    assert.strictEqual((await models.Invite.findByPk(inv.id)).usedCount, 2)
+    await assert.rejects(() => redeemInvite(inv.token, { email: 'a3@x.io', password: 'secret12' }))
+    assert.strictEqual(await models.User.count({ where: { email: 'a3@x.io' } }), 0)
+  })
+
+  it('rejects a mixed-case duplicate email (case-insensitive uniqueness)', async function () {
+    await models.User.create({ email: 'mix@x.io', password: 'secret12' })
+    const inv = await models.Invite.create({ role: 'student', maxUses: 1, expiresAt: future() })
+    await assert.rejects(() => redeemInvite(inv.token, { email: 'MIX@x.io', password: 'secret12' }))
+    assert.strictEqual((await models.Invite.findByPk(inv.id)).usedCount, 0)
+  })
 })
 ```
 
@@ -852,15 +868,22 @@ async function redeemInvite (token, { email, password, role: _ignored } = {}) {
       active: true
     }, { transaction: t, fields: ['email', 'password', 'role', 'active'] })
 
-    // Guarded conditional increment: succeeds for exactly one concurrent redeemer.
+    // Compare-and-set increment: only updates if usedCount is unchanged since we
+    // read it (invite.usedCount). A concurrent redeemer who incremented first shifts
+    // the value, so our WHERE no longer matches -> affected 0 -> we lost the race ->
+    // throw -> the managed transaction rolls back the user create. Plain numeric
+    // values (NO sequelize.literal/col) keep this portable across PG/MySQL/SQLite
+    // (a quoted `"usedCount" + 1` literal is an identifier on PG/SQLite but a string
+    // on MySQL; an unquoted one breaks on PG — so avoid raw SQL arithmetic entirely).
+    // isRedeemable() already verified usedCount < maxUses at read time.
     const [affected] = await models.Invite.update(
-      { usedCount: models.sequelize.literal('"usedCount" + 1') },
+      { usedCount: invite.usedCount + 1 },
       {
         where: {
           id: invite.id,
           revoked: false,
           expiresAt: { [Op.gt]: new Date() },
-          usedCount: { [Op.lt]: models.sequelize.col('maxUses') }
+          usedCount: invite.usedCount
         },
         transaction: t
       }
@@ -883,7 +906,7 @@ router.get('/invite/:token', csrfProtection, async function (req, res) {
   }
 })
 
-router.post('/invite/:token', rateLimit({ windowMs: 60000, max: 10 }), csrfProtection, urlencodedParser, async function (req, res) {
+router.post('/invite/:token', rateLimit({ windowMs: 60000, max: 10 }), urlencodedParser, csrfProtection, async function (req, res) {
   try {
     await redeemInvite(req.params.token, req.body)
     req.flash('info', "You've registered — please sign in.")
@@ -899,7 +922,8 @@ module.exports = router
 module.exports.redeemInvite = redeemInvite
 ```
 
-> Note: `"usedCount" + 1` / `sequelize.col('maxUses')` quoting works on PG and SQLite (Sequelize quotes identifiers). On MySQL, verify the generated SQL; if needed, use `sequelize.literal('usedCount + 1')` unquoted. Test on SQLite first (CI), document the MySQL caveat.
+> Note on middleware order: `urlencodedParser` MUST come before `csrfProtection` on the POST — csurf reads `req.body._csrf`, which is undefined until the body is parsed (this repo has no global body parser; csurf is per-route, see `lib/routes.js:61` for the correct `urlencodedParser, csrfMiddleware` precedent). Wrong order → 403 on every redemption.
+> Note on the increment: it uses a compare-and-set on plain numbers (no `sequelize.literal`), so it's dialect-portable (PG/MySQL/SQLite) and the guard is actually exercised by the maxUses=2 test below.
 
 - [ ] **Step 4: Create views**
 
