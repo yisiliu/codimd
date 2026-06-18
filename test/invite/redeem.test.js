@@ -43,4 +43,20 @@ describe('redeemInvite', function () {
     const inv = await models.Invite.create({ role: 'student', maxUses: 1, revoked: true, expiresAt: future() })
     await assert.rejects(() => redeemInvite(inv.token, { email: 'no@x.io', password: 'secret12' }))
   })
+
+  it('drives the increment guard: a maxUses=2 link redeems exactly twice', async function () {
+    const inv = await models.Invite.create({ role: 'student', maxUses: 2, expiresAt: future() })
+    await redeemInvite(inv.token, { email: 'a1@x.io', password: 'secret12' })
+    await redeemInvite(inv.token, { email: 'a2@x.io', password: 'secret12' })
+    assert.strictEqual((await models.Invite.findByPk(inv.id)).usedCount, 2)
+    await assert.rejects(() => redeemInvite(inv.token, { email: 'a3@x.io', password: 'secret12' }))
+    assert.strictEqual(await models.User.count({ where: { email: 'a3@x.io' } }), 0)
+  })
+
+  it('rejects a mixed-case duplicate email (case-insensitive uniqueness)', async function () {
+    await models.User.create({ email: 'mix@x.io', password: 'secret12' })
+    const inv = await models.Invite.create({ role: 'student', maxUses: 1, expiresAt: future() })
+    await assert.rejects(() => redeemInvite(inv.token, { email: 'MIX@x.io', password: 'secret12' }))
+    assert.strictEqual((await models.Invite.findByPk(inv.id)).usedCount, 0)
+  })
 })
