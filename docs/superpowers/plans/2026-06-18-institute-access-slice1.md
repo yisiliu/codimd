@@ -1102,32 +1102,37 @@ const csrfProtection = csurf({ cookie: true })
 
 // --- service layer (unit-testable) ---
 
-// Reusable WHERE-OR fragment. The target row is safe to deactivate/demote UNLESS
-// it is the last active teacher. The count INCLUDES the target, so the threshold
-// is "> 1". Because it lives inside the single UPDATE's WHERE, the check and the
-// write are one atomic statement — closing the read-then-write (TOCTOU) race that
-// two concurrent teacher actions would otherwise exploit to reach zero teachers.
-function lastTeacherSafeOr () {
-  return [
-    { role: { [Op.ne]: 'teacher' } },
-    { active: false },
-    models.sequelize.literal("(SELECT COUNT(*) FROM \"Users\" WHERE role = 'teacher' AND active = true) > 1")
-  ]
+// SQLite doesn't support SELECT ... FOR UPDATE; skip the row lock there (its
+// serialized writes already isolate transactions). On PG/MySQL the row lock is
+// what makes the last-teacher guard atomic.
+function rowLock (t) {
+  return models.sequelize.getDialect() === 'sqlite' ? undefined : t.LOCK.UPDATE
 }
 
-async function assertExists (userId) {
-  if (!await models.User.findByPk(userId)) throw new Error('user-not-found')
+// Atomic last-teacher guard. Lock the OTHER active teachers' rows inside the
+// transaction so a concurrent deactivate/demote can't also observe "another teacher
+// exists" and race us to zero. Plain Sequelize query (NO raw SQL literal) -> portable
+// across PG/MySQL/SQLite. (A `"(SELECT COUNT(*) FROM \"Users\" ...)"` literal is an
+// identifier on PG/SQLite but a string on MySQL — avoid it entirely.)
+async function assertAnotherActiveTeacher (excludeId, t) {
+  const others = await models.User.findAll({
+    where: { role: 'teacher', active: true, id: { [Op.ne]: excludeId } },
+    transaction: t,
+    lock: rowLock(t)
+  })
+  if (others.length < 1) throw new Error('cannot remove last teacher')
 }
 
 async function deactivateUser (userId) {
-  const [affected] = await models.User.update(
-    { active: false },
-    { where: { id: userId, [Op.or]: lastTeacherSafeOr() }, fields: ['active'] }
-  )
-  if (affected !== 1) {
-    await assertExists(userId) // distinguishes not-found from last-teacher
-    throw new Error('cannot remove last teacher')
-  }
+  await models.sequelize.transaction(async function (t) {
+    const target = await models.User.findByPk(userId, { transaction: t })
+    if (!target) throw new Error('user-not-found')
+    if (target.role === 'teacher' && target.active) {
+      await assertAnotherActiveTeacher(userId, t)
+    }
+    target.active = false
+    await target.save({ transaction: t, fields: ['active'] })
+  })
   disconnectUser(realtime, userId)
 }
 
@@ -1138,21 +1143,16 @@ async function activateUser (userId) {
 
 async function setRole (userId, role) {
   if (role !== 'teacher' && role !== 'student') throw new Error('invalid-role')
-  if (role === 'teacher') {
-    const [n] = await models.User.update({ role }, { where: { id: userId }, fields: ['role'] })
-    if (n !== 1) throw new Error('user-not-found')
-    return
-  }
-  // Demotion to student: same atomic last-teacher guard.
-  const [affected] = await models.User.update(
-    { role: 'student' },
-    { where: { id: userId, [Op.or]: lastTeacherSafeOr() }, fields: ['role'] }
-  )
-  if (affected !== 1) {
-    await assertExists(userId)
-    throw new Error('cannot remove last teacher')
-  }
-  disconnectUser(realtime, userId)
+  await models.sequelize.transaction(async function (t) {
+    const target = await models.User.findByPk(userId, { transaction: t })
+    if (!target) throw new Error('user-not-found')
+    if (role === 'student' && target.role === 'teacher' && target.active) {
+      await assertAnotherActiveTeacher(userId, t)
+    }
+    target.role = role
+    await target.save({ transaction: t, fields: ['role'] })
+  })
+  if (role === 'student') disconnectUser(realtime, userId)
 }
 
 async function resetPassword (userId, newPassword) {
