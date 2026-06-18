@@ -1205,12 +1205,14 @@ function handle (fn) {
   }
 }
 
-router.post('/admin/invites', csrfProtection, urlencodedParser, handle(req => createInvite(req.user.id, req.body)))
-router.post('/admin/invites/:id/revoke', csrfProtection, urlencodedParser, handle(req => revokeInvite(req.params.id)))
-router.post('/admin/users/:id/deactivate', csrfProtection, urlencodedParser, handle(req => deactivateUser(req.params.id)))
-router.post('/admin/users/:id/activate', csrfProtection, urlencodedParser, handle(req => activateUser(req.params.id)))
-router.post('/admin/users/:id/role', csrfProtection, urlencodedParser, handle(req => setRole(req.params.id, req.body.role)))
-router.post('/admin/users/:id/reset-password', csrfProtection, urlencodedParser, handle(req => resetPassword(req.params.id, req.body.password)))
+// urlencodedParser MUST precede csrfProtection — csurf reads req.body._csrf, which
+// is undefined until the body is parsed (no global body parser; see lib/routes.js:64).
+router.post('/admin/invites', urlencodedParser, csrfProtection, handle(req => createInvite(req.user.id, req.body)))
+router.post('/admin/invites/:id/revoke', urlencodedParser, csrfProtection, handle(req => revokeInvite(req.params.id)))
+router.post('/admin/users/:id/deactivate', urlencodedParser, csrfProtection, handle(req => deactivateUser(req.params.id)))
+router.post('/admin/users/:id/activate', urlencodedParser, csrfProtection, handle(req => activateUser(req.params.id)))
+router.post('/admin/users/:id/role', urlencodedParser, csrfProtection, handle(req => setRole(req.params.id, req.body.role)))
+router.post('/admin/users/:id/reset-password', urlencodedParser, csrfProtection, handle(req => resetPassword(req.params.id, req.body.password)))
 
 module.exports = router
 Object.assign(module.exports, { deactivateUser, activateUser, setRole, resetPassword, createInvite, revokeInvite })
@@ -1218,7 +1220,20 @@ Object.assign(module.exports, { deactivateUser, activateUser, setRole, resetPass
 
 - [ ] **Step 4: Build the dashboard view** `public/views/admin/dashboard.ejs`
 
-Bootstrap-3 page with two tables: **Users** (email, role, active, joined; per-row forms for activate/deactivate, promote/demote, reset-password — each with a hidden `_csrf`) and **Invites** (role, used/max, expiry, a generated link `/invite/<token>`, revoke button) plus a "create invite" form (role select, maxUses number, expires-in-days). For self-row demote/deactivate add an `onsubmit="return confirm(...)"` to satisfy the self-action confirmation requirement. Model markup on existing authenticated views.
+Bootstrap-3 page with two tables: **Users** (email, role, active, joined; per-row forms for activate/deactivate, promote/demote, reset-password — each with a hidden `_csrf`) and **Invites** (role, used/max, expiry, a generated link `/invite/<token>`, revoke button) plus a "create invite" form (role select, maxUses number, expires-in-days). Render all user data with escaping `<%= %>` (only the trusted `serverURL` may use `<%- %>`).
+
+**Self-action confirmation under CSP:** CodiMD enables a nonce-based CSP by default (no `'unsafe-inline'`), so inline `onsubmit="return confirm(...)"` handlers are silently blocked by the browser. Instead, mark the self-affecting forms with a `data-confirm="message"` attribute and add ONE nonce'd script at the bottom that wires a delegated submit listener:
+
+```html
+<script nonce="<%= nonce %>">
+  document.addEventListener('submit', function (e) {
+    var msg = e.target.getAttribute('data-confirm')
+    if (msg && !window.confirm(msg)) e.preventDefault()
+  })
+</script>
+```
+
+`res.locals.nonce` is set by `csp.addNonceToLocals` (see `app.js`), so `<%= nonce %>` is available in the view. Model the page layout on an existing authenticated view (e.g. one that already uses `<%= nonce %>` for scripts) to inherit head/CSP conventions.
 
 - [ ] **Step 5: Mount + verify pass + lint + commit**
 
