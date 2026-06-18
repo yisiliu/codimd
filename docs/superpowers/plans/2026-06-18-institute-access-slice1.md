@@ -1183,7 +1183,10 @@ async function revokeInvite (inviteId) {
 // --- HTTP layer ---
 
 const router = Router()
-router.use(requireTeacher)
+// Scope to /admin: this router is mounted at the app root (appRouter.use(require('./admin'))),
+// so a bare router.use(requireTeacher) would block EVERY later route (/me, /new, notes...)
+// for non-teachers. Path-restrict the guard so other requests fall through.
+router.use('/admin', requireTeacher)
 
 router.get('/admin', csrfProtection, async function (req, res) {
   const users = await models.User.findAll({ order: [['createdAt', 'ASC']] })
