@@ -13,6 +13,7 @@ const baseurl = (typeof serverurl !== 'undefined' && serverurl) ? serverurl : ''
 // state
 let notes = []
 let folders = []
+let spaces = []
 let currentFolder = 'all' // 'all' | 'unfiled' | folderId
 
 const options = {
@@ -23,12 +24,15 @@ const options = {
             <a class="dash-note-link" target="_blank">
               <i class="fa fa-file-text-o"></i> <span class="text"></span>
             </a>
+            <span class="dash-shared-badge" style="display:none;"><i class="fa fa-share-alt"></i>shared</span>
             <span class="timestamp" style="display:none;"></span>
             <div class="dash-note-tags"></div>
+            <div class="dash-note-spaces"></div>
           </div>
           <div class="dash-note-actions">
             <button type="button" class="btn btn-xs btn-default dash-pin" title="Pin"><i class="fa fa-thumb-tack"></i></button>
             <select class="form-control input-sm dash-move"></select>
+            <select class="form-control input-sm dash-space-add" title="Add to shared space"></select>
             <form class="dash-add-tag form-inline">
               <input type="text" class="form-control input-sm dash-tag-input" placeholder="+ tag">
             </form>
@@ -60,10 +64,12 @@ function apiSend (method, path, body) {
 function load () {
   Promise.all([
     apiGet('/api/notes/myNotes'),
-    apiGet('/api/folders')
-  ]).then(([notesData, foldersData]) => {
+    apiGet('/api/folders'),
+    apiGet('/api/spaces')
+  ]).then(([notesData, foldersData, spacesData]) => {
     notes = (notesData && notesData.myNotes) || []
     folders = (foldersData && foldersData.folders) || []
+    spaces = (spacesData && spacesData.spaces) || []
     renderFolders()
     renderNotes()
   })
@@ -147,6 +153,20 @@ function moveSelectHtml (note) {
   return html
 }
 
+function noteSpaceIds (note) {
+  return (note.spaces || []).map(s => String(s.id))
+}
+
+function spaceAddSelectHtml (note) {
+  const have = noteSpaceIds(note)
+  const available = spaces.filter(s => !have.includes(String(s.id)))
+  let html = '<option value="">+ space</option>'
+  available.forEach(space => {
+    html += `<option value="${space.id}">${escapeHtml(space.name)}</option>`
+  })
+  return html
+}
+
 function refreshMoveSelects () {
   $('#dashboard-notes .dash-move').each(function () {
     const note = noteByEncoded($(this).closest('li').find('.noteid').text())
@@ -193,6 +213,23 @@ noteList.on('updated', () => {
       $tags.append($chip)
       $tags.append(' ')
     })
+    // shared badge
+    const noteSpaces = note.spaces || []
+    if (noteSpaces.length) $el.find('.dash-shared-badge').show(); else $el.find('.dash-shared-badge').hide()
+    // space chips (distinct from private tag chips)
+    const $spaces = $el.find('.dash-note-spaces')
+    $spaces.empty()
+    if (noteSpaces.length) {
+      $spaces.append('<span class="dash-spaces-label"><i class="fa fa-share-alt"></i>Spaces:</span>')
+      noteSpaces.forEach(space => {
+        const $chip = $(`<span class="space-chip">${escapeHtml(space.name)}<a href="#" class="space-x" title="Remove from space">&times;</a></span>`)
+        $chip.data('spaceId', space.id)
+        $spaces.append($chip)
+        $spaces.append(' ')
+      })
+    }
+    // space add select
+    $el.find('.dash-space-add').html(spaceAddSelectHtml(note))
   })
 })
 
@@ -313,6 +350,41 @@ $('#dashboard-notes').on('click', '.dash-tag-remove', function (e) {
       renderNotes()
     }
   })
+})
+
+function saveNoteSpaces (encodedId, note, nextSpaces) {
+  const spaceIds = nextSpaces.map(s => s.id)
+  return apiSend('PUT', `/api/notes/${encodedId}/spaces`, { spaceIds }).then(({ ok }) => {
+    if (ok) {
+      note.spaces = nextSpaces
+      renderNotes()
+    }
+  })
+}
+
+// add note to a shared space
+$('#dashboard-notes').on('change', '.dash-space-add', function () {
+  const encodedId = $(this).closest('li').find('.noteid').text()
+  const note = noteByEncoded(encodedId)
+  if (!note) return
+  const spaceId = $(this).val()
+  if (!spaceId) return
+  const space = spaces.find(s => String(s.id) === String(spaceId))
+  if (!space) return
+  const current = note.spaces || []
+  if (current.some(s => String(s.id) === String(spaceId))) return
+  saveNoteSpaces(encodedId, note, current.concat([{ id: space.id, name: space.name }]))
+})
+
+// remove note from a shared space
+$('#dashboard-notes').on('click', '.space-x', function (e) {
+  e.preventDefault()
+  const encodedId = $(this).closest('li').find('.noteid').text()
+  const note = noteByEncoded(encodedId)
+  if (!note) return
+  const spaceId = $(this).closest('.space-chip').data('spaceId')
+  const next = (note.spaces || []).filter(s => String(s.id) !== String(spaceId))
+  saveNoteSpaces(encodedId, note, next)
 })
 
 // search keeps the empty-state in sync
