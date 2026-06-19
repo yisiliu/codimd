@@ -95,3 +95,12 @@ For closed (invite-only) deployments:
 - **Provider auto-register gate:** SSO logins only auto-create accounts when `config.allowProviderAutoRegister` is true (default false) — see `lib/auth`’s provider strategies.
 - **Bootstrap:** the first teacher is created on the CLI via `bin/manage_users --add --role teacher <email>` (or `--promote <email>`) — the only path that survives a locked config.
 - **Locked-instance preset & full procedure:** set `allowEmailRegister`/`allowAnonymous`/`allowAnonymousEdits`/`allowProviderAutoRegister` to false and leave non-email provider credentials unset (providers are enabled by credential presence, see `isXxxEnable` in `lib/config/index.js`). Full first-run runbook: `docs/institute-runbook.md`.
+
+## Notes dashboard (signed-in home)
+
+For signed-in users, the home page (`/`) renders a personal **Notes Dashboard** (`public/views/dashboard.ejs`, chosen in `lib/homepage` `showIndex`) instead of the cover landing:
+
+- **Organization model:** flat `Folder`s (`lib/models/folder.js`, per-owner unique name) and user-applied `NoteTag`s (`lib/models/notetag.js`, normalized lowercase), plus two owner-personal columns on `Note` — `folderId` (one folder per note) and `pinned`. Pin is a real column, **not** the legacy history JSON.
+- **API:** owner-guarded `/api/*` endpoints in `lib/dashboard` (folders CRUD, `PUT /api/notes/:id/folder|pin`, `POST/DELETE .../tags`). Session-auth only (no csurf, matching `/api/notes/*`). The router defines **only** `/api/*` routes and is mounted above the `/:noteId` catch-all — it carries no root-level `router.use(guard)` (see the Slice-1 admin-router leak lesson).
+- **No DB foreign keys:** this repo emits no enforced FKs except a legacy `Notes.ownerId`. Organization cleanup is **explicit app-level** code — deleting a folder nulls its notes' `folderId`; deleting a note removes its `NoteTag` rows (`cleanupNoteOrganization` in `lib/note`).
+- **Note IDs:** `getMyNoteList` returns base64url-**encoded** ids; the dashboard client decodes before calling the raw-UUID mutation routes. (A cleaner future fix: parse the encoded id server-side in the router.)

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="<%= getLocale() %>">
+
+<head>
+    <%- include('index/head') %>
+    <style nonce="<%= nonce %>">
+        body { background-color: #f7f7f9; color: #333; }
+        .dash-wrap { max-width: 1100px; margin: 0 auto; padding: 24px 15px 60px; }
+        .dash-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 24px; }
+        .dash-head .brand { font-size: 22px; font-weight: 600; }
+        .dash-head .brand .fa { margin-right: 6px; }
+        .dash-head .brand small { opacity: .55; font-weight: 400; }
+        .dash-body { display: flex; flex-wrap: wrap; gap: 22px; }
+        .dash-sidebar { flex: 0 0 240px; max-width: 240px; }
+        .dash-main { flex: 1 1 600px; min-width: 0; }
+        .dash-panel { margin-bottom: 22px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+        .dash-panel .panel-heading { font-weight: 600; }
+        .folder-list { list-style: none; margin: 0; padding: 0; }
+        .folder-list > li > a { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; color: #333; text-decoration: none; border-left: 3px solid transparent; }
+        .folder-list > li > a:hover, .folder-list > li.active > a { background-color: #f2f2f5; border-left-color: #337ab7; }
+        .folder-list .fa { margin-right: 6px; }
+        .folder-count { font-size: 11px; opacity: .55; }
+        .dash-toolbar { margin-bottom: 14px; }
+        .dash-toolbar .form-group { margin-right: 6px; }
+        #dashboard-notes { list-style: none; margin: 0; padding: 0; }
+        .dash-note { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 6px; border-bottom: 1px solid #eee; }
+        .dash-note-main { flex: 1 1 auto; min-width: 0; }
+        .dash-note-link { color: #337ab7; text-decoration: none; font-weight: 500; }
+        .dash-note-link .text { color: #333; }
+        .dash-note-link:hover .text, .dash-note-link:hover { color: #337ab7; }
+        .dash-note-link .fa { margin-right: 6px; opacity: .6; }
+        .dash-note-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+        .dash-note-actions .dash-move { width: auto; max-width: 160px; }
+        .dash-note-tags { margin-top: 4px; }
+        .dash-note-tags .tag-chip { display: inline-block; background: #eef2f6; color: #41607a; border-radius: 3px; font-size: 11px; padding: 1px 6px; margin: 2px 4px 0 0; }
+        .dash-note-tags .tag-chip .tag-x { cursor: pointer; margin-left: 4px; opacity: .6; }
+        .dash-note .dash-pin.pinned { color: #f0ad4e; }
+        .dash-empty { text-align: center; padding: 50px 15px; color: #999; }
+        .dash-empty .fa { font-size: 42px; opacity: .35; margin-bottom: 12px; }
+    </style>
+</head>
+
+<body>
+    <div class="dash-wrap">
+        <div class="dash-head">
+            <span class="brand"><i class="fa fa-file-text"></i> CodiMD <small>· <%= __('My Notes') %></small></span>
+            <span>
+                <i class="fa fa-user-circle-o"></i>&ensp;
+                <a href="<%- serverURL %>/" class="btn btn-sm btn-default"><i class="fa fa-home"></i> <%= __('Home') %></a>
+                <a href="<%- serverURL %>/logout" class="btn btn-sm btn-default"><i class="fa fa-sign-out"></i> <%= __('Sign Out') %></a>
+            </span>
+        </div>
+
+        <% if (infoMessage && infoMessage.length > 0) { %>
+        <div class="alert alert-success"><i class="fa fa-check-circle"></i> <%= infoMessage %></div>
+        <% } %>
+        <% if (errorMessage && errorMessage.length > 0) { %>
+        <div class="alert alert-danger"><i class="fa fa-exclamation-circle"></i> <%= errorMessage %></div>
+        <% } %>
+
+        <div class="dash-body">
+            <div class="dash-sidebar">
+                <div class="panel panel-default dash-panel">
+                    <div class="panel-heading"><i class="fa fa-folder-o"></i> <%= __('Folders') %></div>
+                    <ul class="folder-list" id="dashboard-folders">
+                        <li class="active" data-folder="all">
+                            <a href="#" data-folder="all"><span><i class="fa fa-list"></i> <%= __('All notes') %></span><span class="folder-count" data-count="all"></span></a>
+                        </li>
+                        <li data-folder="unfiled">
+                            <a href="#" data-folder="unfiled"><span><i class="fa fa-inbox"></i> <%= __('Unfiled') %></span><span class="folder-count" data-count="unfiled"></span></a>
+                        </li>
+                        <!-- folders injected here by public/js/dashboard.js -->
+                    </ul>
+                    <div class="panel-body">
+                        <form id="create-folder-form" class="form-inline">
+                            <div class="input-group input-group-sm">
+                                <input type="text" id="create-folder-name" class="form-control" placeholder="<%= __('New folder...') %>">
+                                <span class="input-group-btn">
+                                    <button type="submit" class="btn btn-default" title="<%= __('Create folder') %>"><i class="fa fa-plus"></i></button>
+                                </span>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dash-main">
+                <div class="panel panel-default dash-panel">
+                    <div class="panel-heading"><i class="fa fa-sticky-note-o"></i> <%= __('Notes') %></div>
+                    <div class="panel-body" id="dashboard-list">
+                        <form class="form-inline dash-toolbar" id="dashboard-toolbar">
+                            <div class="form-group" style="vertical-align: bottom;">
+                                <input class="form-control ui-use-tags" id="dashboard-tags" placeholder="<%= __('Select tags...') %>">
+                            </div>
+                            <div class="form-group">
+                                <input class="search form-control" placeholder="<%= __('Search keyword...') %>">
+                            </div>
+                            <a href="#" class="sort btn btn-default" data-sort="text" title="<%= __('Sort by title') %>"><%= __('Title') %></a>
+                            <a href="#" class="sort btn btn-default" data-sort="timestamp" title="<%= __('Sort by time') %>"><%= __('Time') %></a>
+                            <a href="<%- serverURL %>/new" class="btn btn-primary pull-right"><i class="fa fa-plus"></i> <%= __('New note') %></a>
+                        </form>
+
+                        <div class="dash-empty" id="dashboard-empty" style="display: none;">
+                            <div><i class="fa fa-file-o"></i></div>
+                            <h4><%= __('No notes yet') %></h4>
+                            <a href="<%- serverURL %>/new" class="btn btn-primary"><i class="fa fa-plus"></i> <%= __('New note') %></a>
+                        </div>
+
+                        <ul id="dashboard-notes" class="list"></ul>
+                        <ul class="pagination"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <p class="text-center text-muted" style="margin-top: 8px;"><%- __('Powered by %s', '<a href="https://github.com/hackmdio/codimd">CodiMD</a>') %></p>
+    </div>
+    <% if(useCDN) { %>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/velocity/1.5.2/velocity.min.js" integrity="sha256-1HqoI76JGKA17K0C0s9K8L/iy8PAC43KVLt1hRD/Ojc=" crossorigin="anonymous" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.0/js/bootstrap.min.js" integrity="sha256-kJrlY+s09+QoWjpkOrXXwhxeaoDz9FW5SaxF8I0DibQ=" crossorigin="anonymous" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/list.pagination.js/0.1.1/list.pagination.min.js" integrity="sha256-WwTza96H3BgcQTfEfxX7MFaFc/dZA0QrPRKDRLdFHJo=" crossorigin="anonymous" defer></script>
+    <%- include('build/dashboard-scripts') %>
+    <% } else { %>
+    <%- include('build/dashboard-pack-scripts') %>
+    <% } %>
+</body>
+
+</html>
