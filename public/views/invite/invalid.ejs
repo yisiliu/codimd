@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="<%= getLocale() %>">
+
+<head>
+    <%- include('../index/head') %>
+</head>
+
+<body>
+    <div class="site-wrapper">
+        <div class="site-wrapper-inner">
+            <div class="cover-container">
+                <div class="inner cover" style="margin-top: 12vh;">
+                    <h1 class="cover-heading"><i class="fa fa-file-text"></i> CodiMD</h1>
+                    <p class="lead"><i class="fa fa-exclamation-triangle"></i> <%= __('This invite link is invalid or has expired.') %></p>
+                    <p style="opacity: .85;"><%= __('Ask a teacher for a new one.') %></p>
+                    <a href="<%- serverURL %>/" class="btn btn-lg btn-primary" style="margin-top: 12px; min-width: 200px;"><%= __('Go to sign in') %></a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

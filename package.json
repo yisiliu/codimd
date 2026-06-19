@@ -193,6 +193,7 @@
     "sinon": "~7.3.2",
     "socket.io-client": "~2.2.0",
     "spin.js": "~4.0.0",
+    "sqlite3": "^5.1.7",
     "standard": "~13.1.0",
     "store": "~2.0.12",
     "string-loader": "~0.0.1",

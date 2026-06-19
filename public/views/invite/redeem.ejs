@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="<%= getLocale() %>">
+
+<head>
+    <%- include('../index/head') %>
+</head>
+
+<body>
+    <div class="site-wrapper">
+        <div class="site-wrapper-inner">
+            <div class="cover-container">
+                <div class="inner cover" style="margin-top: 8vh;">
+                    <h1 class="cover-heading"><i class="fa fa-file-text"></i> CodiMD</h1>
+                    <p class="lead"><%= __('You have been invited. Create your account to get started.') %></p>
+                    <div class="panel panel-default" style="max-width: 360px; margin: 24px auto 0; text-align: left;">
+                        <div class="panel-body">
+                            <% errorMessages.forEach(function (m) { %>
+                            <div class="alert alert-danger"><%= m %></div>
+                            <% }) %>
+                            <form method="post" action="<%- serverURL %>/invite/<%= token %>" data-toggle="validator" role="form">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <div class="form-group">
+                                    <input type="email" name="email" class="form-control" placeholder="<%= __('E-Mail') %>" required>
+                                </div>
+                                <div class="form-group">
+                                    <input type="password" name="password" class="form-control" placeholder="<%= __('Password') %>" minlength="8" required>
+                                </div>
+                                <button type="submit" class="btn btn-lg btn-success btn-block"><%= __('Create account') %></button>
+                            </form>
+                        </div>
+                    </div>
+                    <p style="margin-top: 16px;"><a href="<%- serverURL %>/" style="color: #fff;"><%= __('Already have an account? Sign in') %></a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
