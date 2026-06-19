@@ -75,7 +75,7 @@
             <div class="dash-main">
                 <div class="panel panel-default dash-panel">
                     <div class="panel-heading"><i class="fa fa-sticky-note-o"></i> <%= __('Notes') %></div>
-                    <div class="panel-body">
+                    <div class="panel-body" id="dashboard-list">
                         <form class="form-inline dash-toolbar" id="dashboard-toolbar">
                             <div class="form-group" style="vertical-align: bottom;">
                                 <input class="form-control ui-use-tags" id="dashboard-tags" placeholder="<%= __('Select tags...') %>">
@@ -103,6 +103,15 @@
 
         <p class="text-center text-muted" style="margin-top: 8px;"><%- __('Powered by %s', '<a href="https://github.com/hackmdio/codimd">CodiMD</a>') %></p>
     </div>
+    <% if(useCDN) { %>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/velocity/1.5.2/velocity.min.js" integrity="sha256-1HqoI76JGKA17K0C0s9K8L/iy8PAC43KVLt1hRD/Ojc=" crossorigin="anonymous" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.0/js/bootstrap.min.js" integrity="sha256-kJrlY+s09+QoWjpkOrXXwhxeaoDz9FW5SaxF8I0DibQ=" crossorigin="anonymous" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/list.pagination.js/0.1.1/list.pagination.min.js" integrity="sha256-WwTza96H3BgcQTfEfxX7MFaFc/dZA0QrPRKDRLdFHJo=" crossorigin="anonymous" defer></script>
+    <%- include('build/dashboard-scripts') %>
+    <% } else { %>
+    <%- include('build/dashboard-pack-scripts') %>
+    <% } %>
 </body>
 
 </html>

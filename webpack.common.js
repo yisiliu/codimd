@@ -77,6 +77,19 @@ module.exports = {
       chunksSortMode: 'manual'
     }),
     new HtmlWebpackPlugin({
+      template: 'public/views/includes/scripts.ejs',
+      chunks: ['dashboard'],
+      filename: path.join(__dirname, 'public/views/build/dashboard-scripts.ejs'),
+      inject: false
+    }),
+    new HtmlWebpackPlugin({
+      template: 'public/views/includes/scripts.ejs',
+      chunks: ['common', 'dashboard-pack'],
+      filename: path.join(__dirname, 'public/views/build/dashboard-pack-scripts.ejs'),
+      inject: false,
+      chunksSortMode: 'manual'
+    }),
+    new HtmlWebpackPlugin({
       template: 'public/views/includes/header.ejs',
       chunks: ['font', 'pretty-styles', 'pretty'],
       filename: path.join(__dirname, 'public/views/build/pretty-header.ejs'),
@@ -248,6 +261,16 @@ module.exports = {
       'expose-loader?select2!select2',
       'expose-loader?moment!moment',
       path.join(__dirname, 'public/js/cover.js')
+    ],
+    dashboard: [
+      'core-js/stable',
+      'regenerator-runtime/runtime',
+      path.join(__dirname, 'public/js/dashboard.js')
+    ],
+    'dashboard-pack': [
+      'core-js/stable',
+      'regenerator-runtime/runtime',
+      path.join(__dirname, 'public/js/dashboard.js')
     ],
     index: [
       'core-js/stable',
