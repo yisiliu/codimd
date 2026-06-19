@@ -23,6 +23,18 @@
         .dash-toolbar { margin-bottom: 14px; }
         .dash-toolbar .form-group { margin-right: 6px; }
         #dashboard-notes { list-style: none; margin: 0; padding: 0; }
+        .dash-note { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 6px; border-bottom: 1px solid #eee; }
+        .dash-note-main { flex: 1 1 auto; min-width: 0; }
+        .dash-note-link { color: #337ab7; text-decoration: none; font-weight: 500; }
+        .dash-note-link .text { color: #333; }
+        .dash-note-link:hover .text, .dash-note-link:hover { color: #337ab7; }
+        .dash-note-link .fa { margin-right: 6px; opacity: .6; }
+        .dash-note-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+        .dash-note-actions .dash-move { width: auto; max-width: 160px; }
+        .dash-note-tags { margin-top: 4px; }
+        .dash-note-tags .tag-chip { display: inline-block; background: #eef2f6; color: #41607a; border-radius: 3px; font-size: 11px; padding: 1px 6px; margin: 2px 4px 0 0; }
+        .dash-note-tags .tag-chip .tag-x { cursor: pointer; margin-left: 4px; opacity: .6; }
+        .dash-note .dash-pin.pinned { color: #f0ad4e; }
         .dash-empty { text-align: center; padding: 50px 15px; color: #999; }
         .dash-empty .fa { font-size: 42px; opacity: .35; margin-bottom: 12px; }
     </style>
