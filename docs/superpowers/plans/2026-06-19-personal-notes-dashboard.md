@@ -627,9 +627,12 @@ describe('getMyNoteList with organization', function () {
 
   it('returns owned notes with folderId, userTags, pinned; excludes others', async function () {
     const f = await dash.createFolder(u1, 'F')
-    const mine = await models.Note.create({ ownerId: u1, title: 'Mine', folderId: f.id, pinned: true })
+    // Provide non-empty content: Note's beforeCreate hook overwrites `title` from
+    // public/default.md only when content is empty. With content set, the seeded
+    // title persists.
+    const mine = await models.Note.create({ ownerId: u1, title: 'Mine', content: 'mine body', folderId: f.id, pinned: true })
     await dash.addTag(u1, mine.id, 'ml')
-    await models.Note.create({ ownerId: u2, title: 'Theirs' })
+    await models.Note.create({ ownerId: u2, title: 'Theirs', content: 'theirs body' })
 
     const list = await getMyNoteList(u1)
     assert.strictEqual(list.length, 1)
