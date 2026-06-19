@@ -100,7 +100,10 @@ module.exports = function (sequelize, DataTypes) {
 
   Space.associate = function (models) {
     Space.belongsTo(models.User, { foreignKey: 'createdById', constraints: false })
-    Space.hasMany(models.NoteSpace, { foreignKey: 'spaceId', constraints: false })
+    // NB: no `Space.hasMany(NoteSpace)` here — NoteSpace is created in Task 2 and the
+    // model loader runs associate() eagerly, so referencing it now throws when only
+    // space.js exists. The services query NoteSpace directly, so the reverse
+    // association is unused anyway.
   }
 
   return Space
