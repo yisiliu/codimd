@@ -217,6 +217,8 @@ git commit -m "feat(notetag): add NoteTag model with normalization + uniqueness"
 
 - [ ] **Step 1: Write the failing test**
 
+> IMPORTANT: `Notes.ownerId` is an **enforced FK** to `Users.id` on sqlite (the Note→User association carries `onDelete: 'CASCADE'`, which makes Sequelize emit the FK even with `constraints: false`). So any test that creates a `Note` with an `ownerId` must seed a **real** `User` first. Seed with `User.create({})` (no password → no slow scrypt hashing) and use its generated UUID.
+
 ```js
 'use strict'
 /* eslint-env node, mocha */
@@ -225,17 +227,21 @@ const { models, resetDb } = require('../helpers/db')
 
 describe('Note organization columns', function () {
   this.timeout(10000)
-  beforeEach(resetDb)
+  let u1
+  beforeEach(async function () {
+    await resetDb()
+    u1 = (await models.User.create({})).id
+  })
 
   it('defaults to unfiled + unpinned', async function () {
-    const n = await models.Note.create({})
+    const n = await models.Note.create({ ownerId: u1 })
     assert.strictEqual(n.folderId, null)
     assert.strictEqual(n.pinned, false)
   })
 
   it('stores folderId and pinned', async function () {
-    const f = await models.Folder.create({ ownerId: 'u1', name: 'F' })
-    const n = await models.Note.create({ ownerId: 'u1', folderId: f.id, pinned: true })
+    const f = await models.Folder.create({ ownerId: u1, name: 'F' })
+    const n = await models.Note.create({ ownerId: u1, folderId: f.id, pinned: true })
     assert.strictEqual(n.folderId, f.id)
     assert.strictEqual(n.pinned, true)
   })
@@ -356,30 +362,35 @@ const dash = require('../../lib/dashboard/index')
 
 describe('folder services', function () {
   this.timeout(10000)
-  beforeEach(resetDb)
+  let u1, u2
+  beforeEach(async function () {
+    await resetDb()
+    u1 = (await models.User.create({})).id
+    u2 = (await models.User.create({})).id
+  })
 
   it('creates, lists, renames folders for the owner', async function () {
-    const f = await dash.createFolder('u1', 'Thesis')
-    await dash.renameFolder('u1', f.id, 'Dissertation')
-    const list = await dash.listFolders('u1')
+    const f = await dash.createFolder(u1, 'Thesis')
+    await dash.renameFolder(u1, f.id, 'Dissertation')
+    const list = await dash.listFolders(u1)
     assert.strictEqual(list.length, 1)
     assert.strictEqual(list[0].name, 'Dissertation')
   })
 
   it('rejects blank folder names', async function () {
-    await assert.rejects(() => dash.createFolder('u1', '   '), /name/i)
+    await assert.rejects(() => dash.createFolder(u1, '   '), /name/i)
   })
 
   it('refuses to rename/delete a folder owned by someone else', async function () {
-    const f = await dash.createFolder('u1', 'Mine')
-    await assert.rejects(() => dash.renameFolder('u2', f.id, 'Hacked'), /not-found|forbidden/i)
-    await assert.rejects(() => dash.deleteFolder('u2', f.id), /not-found|forbidden/i)
+    const f = await dash.createFolder(u1, 'Mine')
+    await assert.rejects(() => dash.renameFolder(u2, f.id, 'Hacked'), /not-found|forbidden/i)
+    await assert.rejects(() => dash.deleteFolder(u2, f.id), /not-found|forbidden/i)
   })
 
   it('orphans member notes to Unfiled on folder delete (notes survive)', async function () {
-    const f = await dash.createFolder('u1', 'Course')
-    const n = await models.Note.create({ ownerId: 'u1', folderId: f.id })
-    await dash.deleteFolder('u1', f.id)
+    const f = await dash.createFolder(u1, 'Course')
+    const n = await models.Note.create({ ownerId: u1, folderId: f.id })
+    await dash.deleteFolder(u1, f.id)
     const reloaded = await models.Note.findByPk(n.id)
     assert.ok(reloaded, 'note still exists')
     assert.strictEqual(reloaded.folderId, null)
@@ -387,6 +398,8 @@ describe('folder services', function () {
   })
 })
 ```
+
+> Note: seed real `User` rows (`User.create({})`) for owners — `Notes.ownerId` is an enforced FK on sqlite (see Task 3). Folders have no enforced FK, but use the same seeded UUIDs so the folder owner, the note owner, and the service-call `ownerId` all match.
 
 - [ ] **Step 2: Run to verify it fails**
 
@@ -462,47 +475,51 @@ const assert = require('assert')
 const { models, resetDb } = require('../helpers/db')
 const dash = require('../../lib/dashboard/index')
 
-async function myNote (ownerId) { return models.Note.create({ ownerId }) }
-
 describe('note organize services', function () {
   this.timeout(10000)
-  beforeEach(resetDb)
+  let u1, u2
+  async function myNote (ownerId) { return models.Note.create({ ownerId }) }
+  beforeEach(async function () {
+    await resetDb()
+    u1 = (await models.User.create({})).id
+    u2 = (await models.User.create({})).id
+  })
 
   it('files a note into my folder and can unfile it', async function () {
-    const f = await dash.createFolder('u1', 'F')
-    const n = await myNote('u1')
-    await dash.setFolder('u1', n.id, f.id)
+    const f = await dash.createFolder(u1, 'F')
+    const n = await myNote(u1)
+    await dash.setFolder(u1, n.id, f.id)
     assert.strictEqual((await models.Note.findByPk(n.id)).folderId, f.id)
-    await dash.setFolder('u1', n.id, null)
+    await dash.setFolder(u1, n.id, null)
     assert.strictEqual((await models.Note.findByPk(n.id)).folderId, null)
   })
 
   it('refuses to file my note into someone else\'s folder', async function () {
-    const other = await dash.createFolder('u2', 'Other')
-    const n = await myNote('u1')
-    await assert.rejects(() => dash.setFolder('u1', n.id, other.id), /folder-not-found/i)
+    const other = await dash.createFolder(u2, 'Other')
+    const n = await myNote(u1)
+    await assert.rejects(() => dash.setFolder(u1, n.id, other.id), /folder-not-found/i)
   })
 
   it('refuses to organize a note I do not own', async function () {
-    const n = await myNote('u2')
-    await assert.rejects(() => dash.setPin('u1', n.id, true), /note-not-found/i)
-    await assert.rejects(() => dash.addTag('u1', n.id, 'x'), /note-not-found/i)
+    const n = await myNote(u2)
+    await assert.rejects(() => dash.setPin(u1, n.id, true), /note-not-found/i)
+    await assert.rejects(() => dash.addTag(u1, n.id, 'x'), /note-not-found/i)
   })
 
   it('adds and removes user-tags (dedup, normalized)', async function () {
-    const n = await myNote('u1')
-    await dash.addTag('u1', n.id, 'Machine Learning')
-    await dash.addTag('u1', n.id, 'machine learning') // dedup, no-op
+    const n = await myNote(u1)
+    await dash.addTag(u1, n.id, 'Machine Learning')
+    await dash.addTag(u1, n.id, 'machine learning') // dedup, no-op
     let tags = await dash.tagsFor(n.id)
     assert.deepStrictEqual(tags, ['machine learning'])
-    await dash.removeTag('u1', n.id, 'machine learning')
+    await dash.removeTag(u1, n.id, 'machine learning')
     tags = await dash.tagsFor(n.id)
     assert.deepStrictEqual(tags, [])
   })
 
   it('sets the pin flag', async function () {
-    const n = await myNote('u1')
-    await dash.setPin('u1', n.id, true)
+    const n = await myNote(u1)
+    await dash.setPin(u1, n.id, true)
     assert.strictEqual((await models.Note.findByPk(n.id)).pinned, true)
   })
 })
@@ -601,15 +618,20 @@ function getMyNoteList (userId) {
 
 describe('getMyNoteList with organization', function () {
   this.timeout(10000)
-  beforeEach(resetDb)
+  let u1, u2
+  beforeEach(async function () {
+    await resetDb()
+    u1 = (await models.User.create({})).id
+    u2 = (await models.User.create({})).id
+  })
 
   it('returns owned notes with folderId, userTags, pinned; excludes others', async function () {
-    const f = await dash.createFolder('u1', 'F')
-    const mine = await models.Note.create({ ownerId: 'u1', title: 'Mine', folderId: f.id, pinned: true })
-    await dash.addTag('u1', mine.id, 'ml')
-    await models.Note.create({ ownerId: 'u2', title: 'Theirs' })
+    const f = await dash.createFolder(u1, 'F')
+    const mine = await models.Note.create({ ownerId: u1, title: 'Mine', folderId: f.id, pinned: true })
+    await dash.addTag(u1, mine.id, 'ml')
+    await models.Note.create({ ownerId: u2, title: 'Theirs' })
 
-    const list = await getMyNoteList('u1')
+    const list = await getMyNoteList(u1)
     assert.strictEqual(list.length, 1)
     assert.strictEqual(list[0].text, 'Mine')
     assert.strictEqual(list[0].folderId, f.id)
@@ -690,10 +712,14 @@ const noteCtl = require('../../lib/note/index')
 
 describe('note delete cleans up NoteTags', function () {
   this.timeout(10000)
-  beforeEach(resetDb)
+  let u1
+  beforeEach(async function () {
+    await resetDb()
+    u1 = (await models.User.create({})).id
+  })
 
   it('removes a note\'s tags when the note is deleted', async function () {
-    const n = await models.Note.create({ ownerId: 'u1' })
+    const n = await models.Note.create({ ownerId: u1 })
     await models.NoteTag.create({ noteId: n.id, tag: 'ml' })
     await noteCtl.cleanupNoteOrganization(n.id)
     assert.strictEqual(await models.NoteTag.count({ where: { noteId: n.id } }), 0)
