@@ -38,8 +38,11 @@ owner ⊃ admin ⊃ user in capability. This slice ships the role system only; t
 - **New migration** `lib/migrations/<ts>-roles-user-admin-owner.js` (append-only; do NOT edit the shipped `20260618000001-add-user-role-active.js`):
   - `UPDATE Users SET role='admin' WHERE role='teacher'`
   - `UPDATE Users SET role='user' WHERE role='student'`
-  - Promote the earliest active former-teacher to owner: set `role='owner'` for the single active `admin` with the smallest `id` (or earliest `createdAt`). Guarded so it's a no-op when none exist. `down`: reverse (`admin→teacher`, `user→student`, owner→teacher).
-  - Written to run on sqlite (dev/test) and Postgres/MySQL (prod) — use plain `UPDATE`s via `queryInterface.sequelize.query`, picking the earliest id with a portable subquery.
+  - **Owner auto-promote — two-step in JS (the `id` PK is a UUID, so "smallest id" is meaningless; order by `createdAt`):**
+    1. `SELECT id FROM Users WHERE role='admin' AND active=true ORDER BY createdAt ASC, id ASC LIMIT 1` (the `id ASC` tiebreak makes it deterministic when several rows share an exact `createdAt` — common for seeded/migrated rows). No-op when the set is empty.
+    2. `UPDATE Users SET role='owner' WHERE id = '<that id>'` with the literal id.
+    This deliberately avoids `UPDATE ... ORDER BY ... LIMIT 1` (not portable) and a same-table subquery in UPDATE (MySQL error 1093) — both foot-guns for our sqlite/Postgres/**MySQL** targets. `down`: reverse (`admin→teacher`, `user→student`, `owner→teacher`).
+  - **Migration test must seed two active admins with an identical `createdAt`** and assert **exactly one** owner (the tie case).
 
 ## Authorization
 
@@ -51,7 +54,8 @@ owner ⊃ admin ⊃ user in capability. This slice ships the role system only; t
 
 - **Invites, activate/deactivate:** unchanged behaviour, now gated by `requireAdmin`.
 - **Set role / promote / demote:** gated by `requireOwner`. The view hides the role `<select>`/buttons from non-owners; the server enforces it regardless.
-- **Last-owner guard:** the existing atomic guard (lock the *other* active rows, abort if none) now counts **owners** — block demoting or deactivating the last active owner (`cannot remove last owner`). (A lab can still have just one owner safely.)
+- **Last-owner guard:** the existing atomic guard (lock the *other* active rows, abort if none) now counts **owners** — block demoting or deactivating the last active owner (`cannot remove last owner`). (A lab can still have just one owner safely.) **Demotion predicate (pin explicitly):** the guard must fire on *any* move off owner — `target.role === 'owner' && newRole !== 'owner'` — so it catches **owner→admin** as well as owner→user. (A literal `'student'→'user'` swap of the old predicate would let owner→admin slip past and demote the last owner. `lib/admin/index.js:60`.)
+- **Socket disconnect on demotion — drop it.** The old code disconnects live editor sockets when a user is set to `'student'` (`lib/admin/index.js:66`). In the new model **role no longer gates note access — only `active` does** (deactivation still disconnects sockets, unchanged). So the role-based socket disconnect becomes dead and is **removed**, not relabelled. (Demoting owner→admin→user changes admin/owner privileges, not note access, so there's nothing to disconnect.)
 
 ## Invites (`lib/invite`, `lib/admin`)
 
@@ -63,11 +67,13 @@ owner ⊃ admin ⊃ user in capability. This slice ships the role system only; t
 
 ## The `lib/browse` exception (not a mechanical rename)
 
-`lib/browse` uses `'teacher'` for space rename/delete authz (`mutableSpace` = creator-or-teacher). Per the new model, **admins are normal space members; only owner has space oversight.** So change this check to **creator-or-`owner`**, not creator-or-admin. (4b extends space authz further; 4a just corrects the role literal to the right tier.)
+`lib/browse` uses `'teacher'` for space rename/delete authz (`mutableSpace`, `lib/browse/index.js:39` = creator-or-teacher). Per the new model, **admins are normal space members; only owner has space oversight.** So change this check to **creator-or-`owner`**, not creator-or-admin. **Its client-side twin must move too:** `public/js/dashboard.js:298` `canManageSpace()` checks `dashboardUser.role === 'teacher'` — post-migration no row is `teacher`, so the Browse "manage space" control would vanish for everyone while owners can still manage via the API. Change it to `'owner'` (and **rebuild the bundle** — `NODE_OPTIONS=--openssl-legacy-provider npm run build`). (4b extends space authz further; 4a just corrects the literal to the right tier.)
 
 ## Terminology sweep
 
-Update `teacher→admin` / `student→user` literals and labels across: `lib/models/user.js` (validation/default), `lib/models/invite.js`, `lib/user/validateRole.js`, `lib/admin/index.js`, `bin/manage_users`, `public/views/admin/dashboard.ejs`, `lib/browse/index.js` (→ owner, see above). Do **not** edit the shipped migration `20260618000001-...`. Also refresh `docs/manual-test-guide.md` and re-seed the dev accounts' roles.
+Update `teacher→admin` / `student→user` literals and labels across (grep-verified set): `lib/models/user.js` (validation set + default `'user'`), `lib/models/invite.js` (its **`isIn` validator** must accept `'user'`, not just the default), `lib/user/validateRole.js` (allowed set + default + error message), `lib/admin/index.js`, `bin/manage_users` (`--promote` hardcodes `'teacher'` + help text), `public/views/admin/dashboard.ejs` (role `<select>`, label-color ternaries, promote/demote forms — plus the owner-only render gate), `public/js/dashboard.js` (`canManageSpace` → owner, see above), `public/views/invite/invalid.ejs` ("Ask a teacher" → "Ask an admin"), `lib/browse/index.js` (→ owner). Do **not** edit the shipped migration `20260618000001-...`. Also refresh `docs/manual-test-guide.md` and re-seed the dev accounts' roles.
+
+**Tests the sweep breaks** (update, not optional): `test/web/requireTeacher.test.js` (→ requireAdmin/requireOwner), `test/admin/userLifecycle.test.js`, `test/user/validateRole.test.js`, `test/models/user.test.js`, `test/models/invite.test.js`, `test/invite/redeem.test.js`, `test/browse/spaces.test.js`, and `role: 'student'`/`'teacher'` fixtures in `test/http/*.test.js`.
 
 ## Testing (mocha + power-assert + sqlite `:memory:`; service + HTTP harness)
 
@@ -83,8 +89,8 @@ Update `teacher→admin` / `student→user` literals and labels across: `lib/mod
 - `lib/models/user.js`, `lib/models/invite.js`, `lib/user/validateRole.js`.
 - `lib/web/middleware/requireAdmin.js` (renamed from requireTeacher), `lib/web/middleware/requireOwner.js` (new).
 - `lib/admin/index.js` (guards, last-owner, owner-only role routes), `public/views/admin/dashboard.ejs` (owner-only role UI, labels).
-- `lib/invite/index.js` (role forced to user), invite-create form.
-- `lib/browse/index.js` (teacher→owner for space authz).
+- `lib/invite/index.js` (role forced to user), invite-create form, `public/views/invite/invalid.ejs`.
+- `lib/browse/index.js` (teacher→owner for space authz) + `public/js/dashboard.js` (`canManageSpace`→owner; rebuild bundle).
 - `bin/manage_users` (roles + bootstrap owner).
 - `lib/migrations/<ts>-roles-user-admin-owner.js`.
 - Tests under `test/models`, `test/web/middleware` (or `test/admin`), `test/http`, `test/migrations` (or a data-level migration test).
