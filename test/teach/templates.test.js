@@ -21,9 +21,9 @@ describe('template services', function () {
   })
 
   it('lists viewable template notes; hides another owner\'s private template', async function () {
-    const pub = await models.Note.create({ ownerId: u2, content: '# Pub', title: 'Pub', permission: 'editable', template: true })
-    const priv = await models.Note.create({ ownerId: u2, content: '# Priv', title: 'Priv', permission: 'private', template: true })
-    const mine = await models.Note.create({ ownerId: u1, content: '# Mine', title: 'Mine', permission: 'private', template: true })
+    await models.Note.create({ ownerId: u2, content: '# Pub', title: 'Pub', permission: 'editable', template: true })
+    await models.Note.create({ ownerId: u2, content: '# Priv', title: 'Priv', permission: 'private', template: true })
+    await models.Note.create({ ownerId: u1, content: '# Mine', title: 'Mine', permission: 'private', template: true })
     await models.Note.create({ ownerId: u2, content: '# NotTpl', title: 'NotTpl', permission: 'editable' }) // template:false
 
     const list = await teach.listTemplates(u1)
