@@ -26,7 +26,7 @@ describe('space services', function () {
     const priv = await models.Note.create({ ownerId: u1, content: 'y', permission: 'private' })
     await models.NoteSpace.create({ noteId: pub.id, spaceId: s.id })
     await models.NoteSpace.create({ noteId: priv.id, spaceId: s.id })
-    const list = await browse.listSpaces()
+    const list = await browse.listSpaces({ id: owner, role: 'owner' })
     const row = list.find(x => x.id === s.id)
     assert.strictEqual(row.count, 1) // private excluded from the count
   })

@@ -6,9 +6,9 @@ A hands-on checklist to validate every feature added for the institute deploymen
 
 - **App:** http://localhost:3300  (start it with `CMD_PORT=3300 CMD_DOMAIN=localhost CMD_URL_ADDPORT=true NODE_ENV=development CMD_SESSION_SECRET=localdevsecret NODE_OPTIONS=--openssl-legacy-provider node app.js`)
 - **Accounts** (already created on the dev DB):
-  - Owner — `teacher@example.com` / `teachpass123`
+  - Owner — `owner@example.com` / `ownerpass123`
   - Admin — `admin@example.com` / `adminpass123`
-  - User — `student@example.com` / `student123`
+  - User — `user@example.com` / `user123`
 - **Tip:** use two browsers (or one normal + one private window) so you can be the owner in one and a user in the other for the cross-user scenarios.
 - **Sign in:** click **Sign In** → the modal shows only **Sign in via E-Mail** (no Register button — that's the locked-instance behaviour). Enter the email + password.
 
@@ -82,17 +82,33 @@ You'll want **both** accounts here (owner shares, user discovers).
 - [ ] **Do:** As **owner**, on a note row in **My Notes**, use the **+ space** control to add the note to a new space (e.g. type `Lab Meetings`). 
 - [ ] **Expect:** a **"Spaces: Lab Meetings"** chip appears on the row and a green **"shared"** badge.
 
-### 3.2 Browse discovers shared notes (cross-user)
+### 3.2 Spaces are membership-gated
 - [ ] **Do:** As the **user** (other browser), click the **Browse** toggle at the top of the dashboard.
-- [ ] **Expect:** a **Spaces** sidebar listing `Lab Meetings` (with a count), and the owner's note in the list showing the **owner's name** as note owner. Clicking the title opens the note.
+- [ ] **Expect:** the **Spaces** sidebar does **not** list `Lab Meetings` — you only see spaces you're a member of, and only its creator (the **steward**) was auto-added.
 
-### 3.3 Permissions are respected
-- [ ] **Do:** As **owner**, open a note, set its permission to **private** (in the editor's permission control), and add it to a space.
+### 3.3 Invite a member; they then see the space
+- [ ] **Do:** As **owner** (the space's steward), in **Browse** open the space's **Members** modal (people / `fa-users` icon on the space row). Pick the **user** from the add-member `<select>` and click **Add**.
+- [ ] **Expect:** the user appears in the member list. Now as the **user**, reload **Browse**: the **Spaces** sidebar lists `Lab Meetings` (with a count), and the owner's note shows the **owner's name** as note owner. Clicking the title opens the note.
+
+### 3.4 Permissions are respected
+- [ ] **Do:** As **owner**, open a note, set its permission to **private** (in the editor's permission control), and add it to a space the **user** is a member of.
 - [ ] **Expect:** in the **user's** Browse, that private note does **not** appear (but the owner still sees their own).
 
-### 3.4 Space curation (creator/owner)
-- [ ] **Do:** As the space's creator (or the **owner**), in **Browse** use the rename (pencil) / delete (trash) on a space.
-- [ ] **Expect:** rename updates everywhere; delete removes the space (the notes survive, just no longer in that space). As a non-creator, non-owner member (a plain **user** or an **admin**), those controls are absent — space rename/delete is creator-or-owner.
+### 3.5 Member management: invite / leave / remove / transfer
+- [ ] **Do:** As the **user** (a plain member, not the steward), open the space's **Members** modal.
+- [ ] **Expect:** you can **Leave** your own row, but there is **no remove ×** next to other members and **no "Make steward"** action — only the steward (or institute owner) can remove others / transfer.
+- [ ] **Do:** As **owner** (steward), in the Members modal use the **remove ×** on a plain member's row.
+- [ ] **Expect:** that member is removed and (on their next Browse reload) no longer sees the space. Your **own** steward row has **no remove/Leave** — the steward can't leave until transferring.
+- [ ] **Do:** As **owner** (steward), click **Make steward** on the **user**'s row (invite them back first if needed), then try to **Leave**.
+- [ ] **Expect:** stewardship transfers (the steward badge moves to the user); you're now a plain member and the **Leave** action appears — you can leave the space.
+
+### 3.6 Space curation (steward/owner)
+- [ ] **Do:** As the space's steward (or the institute **owner** role), in **Browse** use the rename (pencil) / delete (trash) on a space.
+- [ ] **Expect:** rename updates everywhere; delete removes the space (the notes survive, just no longer in that space) and clears its memberships. As a non-steward, non-owner member (a plain **user** or an **admin**), those controls are absent — space rename/delete is steward-or-owner.
+
+### 3.7 Institute owner oversees all spaces
+- [ ] **Do:** As the institute **owner** (role, not the note-sharing persona), open **Browse**.
+- [ ] **Expect:** **every** space is listed regardless of membership, and the Members modal lets you invite/remove/transfer on any of them.
 
 ---
 
