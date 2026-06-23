@@ -20,9 +20,9 @@ Usage: bin/manage_users [--pass password] (--add | --del) user-email
     --add\tAdd user with the specified user-email
     --del\tDelete user with specified user-email
     --reset\tReset user password with specified user-email
-    --promote\tPromote the specified user-email to the teacher role
+    --promote\tPromote the specified user-email to the admin role
     --pass\tUse password from cmdline rather than prompting
-    --role\tRole for --add (teacher or student, defaults to student)
+    --role\tRole for --add (user, admin or owner, defaults to user); bootstrap the first owner with --add --role owner
 `)
   process.exit(1)
 }
@@ -100,9 +100,9 @@ async function promoteUser (argv) {
   }
 
   // set role and save
-  existingUser.role = 'teacher'
+  existingUser.role = 'admin'
   await existingUser.save()
-  console.log(`User with email ${argv['promote']} has been promoted to teacher`)
+  console.log(`User with email ${argv['promote']} has been promoted to admin`)
 }
 
 const options = {
@@ -116,7 +116,7 @@ const options = {
 const argv = minimist(process.argv.slice(2))
 
 // Allow the create-email to be given as a positional argument, e.g.
-// `--add --role teacher user@x.io` (minimist treats --add as boolean here).
+// `--add --role admin user@x.io` (minimist treats --add as boolean here).
 if (argv['add'] === true && argv._.length > 0) {
   argv['add'] = argv._[0]
 }

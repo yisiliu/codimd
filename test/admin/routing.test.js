@@ -3,30 +3,30 @@
 const assert = require('assert')
 
 // Regression guard: the admin router is mounted at the app root
-// (appRouter.use(require('./admin'))), so requireTeacher MUST be scoped to /admin.
-// A bare router.use(requireTeacher) would run for every request that reaches the
-// router and block /me, /new, notes, etc. for non-teachers.
+// (appRouter.use(require('./admin'))), so requireAdmin MUST be scoped to /admin.
+// A bare router.use(requireAdmin) would run for every request that reaches the
+// router and block /me, /new, notes, etc. for non-admins.
 describe('admin router mounting', function () {
   const adminRouter = require('../../lib/admin/index')
 
-  function requireTeacherLayer () {
+  function requireAdminLayer () {
     return adminRouter.stack.find(function (l) {
-      return l.handle && l.handle.name === 'requireTeacher'
+      return l.handle && l.handle.name === 'requireAdmin'
     })
   }
 
-  it('mounts requireTeacher', function () {
-    assert.ok(requireTeacherLayer(), 'requireTeacher middleware is present on the router')
+  it('mounts requireAdmin', function () {
+    assert.ok(requireAdminLayer(), 'requireAdmin middleware is present on the router')
   })
 
-  it('applies requireTeacher to /admin paths', function () {
-    const layer = requireTeacherLayer()
+  it('applies requireAdmin to /admin paths', function () {
+    const layer = requireAdminLayer()
     assert.ok(layer.regexp.test('/admin'))
     assert.ok(layer.regexp.test('/admin/users/abc/role'))
   })
 
-  it('does NOT apply requireTeacher to non-admin paths', function () {
-    const layer = requireTeacherLayer()
+  it('does NOT apply requireAdmin to non-admin paths', function () {
+    const layer = requireAdminLayer()
     assert.strictEqual(layer.regexp.test('/me'), false)
     assert.strictEqual(layer.regexp.test('/new'), false)
     assert.strictEqual(layer.regexp.test('/'), false)

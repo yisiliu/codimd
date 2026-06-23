@@ -30,7 +30,7 @@ describe('HTTP: clone & templates', function () {
 
   it('clones a viewable note → 200 + new id', async function () {
     const n = await models.Note.create({ ownerId: u2, content: '# Handout', permission: 'editable' })
-    const res = await request(buildApp({ id: u1, role: 'student', active: true })).post(`/api/notes/${enc(n.id)}/clone`)
+    const res = await request(buildApp({ id: u1, role: 'user', active: true })).post(`/api/notes/${enc(n.id)}/clone`)
     assert.strictEqual(res.status, 200)
     assert.ok(res.body.id)
     assert.strictEqual(await models.Note.count({ where: { ownerId: u1 } }), 1)
@@ -38,20 +38,20 @@ describe('HTTP: clone & templates', function () {
 
   it('refuses to clone another owner\'s private note → 403', async function () {
     const n = await models.Note.create({ ownerId: u2, content: '# s', permission: 'private' })
-    const res = await request(buildApp({ id: u1, role: 'student', active: true })).post(`/api/notes/${enc(n.id)}/clone`)
+    const res = await request(buildApp({ id: u1, role: 'user', active: true })).post(`/api/notes/${enc(n.id)}/clone`)
     assert.strictEqual(res.status, 403)
   })
 
   it('template toggle is owner-only → 403 cross-owner', async function () {
     const n = await models.Note.create({ ownerId: u2, content: '# t' })
-    const res = await request(buildApp({ id: u1, role: 'student', active: true }))
+    const res = await request(buildApp({ id: u1, role: 'user', active: true }))
       .put(`/api/notes/${enc(n.id)}/template`).send({ template: true })
     assert.strictEqual(res.status, 403)
   })
 
   it('templates list hides another owner\'s private template', async function () {
     await models.Note.create({ ownerId: u2, content: '# p', title: 'P', permission: 'private', template: true })
-    const res = await request(buildApp({ id: u1, role: 'student', active: true })).get('/api/templates')
+    const res = await request(buildApp({ id: u1, role: 'user', active: true })).get('/api/templates')
     assert.strictEqual(res.status, 200)
     assert.strictEqual(res.body.templates.length, 0)
   })

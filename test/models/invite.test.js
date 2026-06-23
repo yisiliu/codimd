@@ -11,23 +11,23 @@ describe('Invite.isRedeemable', function () {
   beforeEach(resetDb)
 
   it('true when fresh, unexpired, under maxUses', function () {
-    const i = models.Invite.build({ role: 'student', maxUses: 5, usedCount: 0, expiresAt: future(), revoked: false })
+    const i = models.Invite.build({ role: 'user', maxUses: 5, usedCount: 0, expiresAt: future(), revoked: false })
     assert.strictEqual(i.isRedeemable(), true)
   })
   it('false when revoked', function () {
-    const i = models.Invite.build({ role: 'student', maxUses: 5, usedCount: 0, expiresAt: future(), revoked: true })
+    const i = models.Invite.build({ role: 'user', maxUses: 5, usedCount: 0, expiresAt: future(), revoked: true })
     assert.strictEqual(i.isRedeemable(), false)
   })
   it('false when expired', function () {
-    const i = models.Invite.build({ role: 'student', maxUses: 5, usedCount: 0, expiresAt: past(), revoked: false })
+    const i = models.Invite.build({ role: 'user', maxUses: 5, usedCount: 0, expiresAt: past(), revoked: false })
     assert.strictEqual(i.isRedeemable(), false)
   })
   it('false when used up', function () {
-    const i = models.Invite.build({ role: 'student', maxUses: 1, usedCount: 1, expiresAt: future(), revoked: false })
+    const i = models.Invite.build({ role: 'user', maxUses: 1, usedCount: 1, expiresAt: future(), revoked: false })
     assert.strictEqual(i.isRedeemable(), false)
   })
   it('generates a unique high-entropy token on create', async function () {
-    const i = await models.Invite.create({ role: 'student', maxUses: 1, expiresAt: future() })
+    const i = await models.Invite.create({ role: 'user', maxUses: 1, expiresAt: future() })
     assert.ok(i.token && i.token.length >= 32)
   })
 })

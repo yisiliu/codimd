@@ -3,10 +3,12 @@
 const assert = require('assert')
 const validateRole = require('../../lib/user/validateRole')
 
-it('accepts teacher and student', function () {
-  assert.strictEqual(validateRole('teacher'), 'teacher')
-  assert.strictEqual(validateRole(undefined), 'student') // default
+it('accepts user, admin and owner', function () {
+  assert.strictEqual(validateRole('user'), 'user')
+  assert.strictEqual(validateRole('admin'), 'admin')
+  assert.strictEqual(validateRole('owner'), 'owner')
+  assert.strictEqual(validateRole(undefined), 'user') // default
 })
 it('throws on an unknown role', function () {
-  assert.throws(() => validateRole('admin'), /invalid role/i)
+  assert.throws(() => validateRole('teacher'), /invalid role/i)
 })

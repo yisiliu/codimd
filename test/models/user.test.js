@@ -7,9 +7,9 @@ describe('User model: role/active/email', function () {
   this.timeout(10000)
   beforeEach(resetDb)
 
-  it('defaults new users to active student', async function () {
+  it('defaults new users to active user', async function () {
     const u = await models.User.create({ email: 'a@x.io', password: 'secret12' })
-    assert.strictEqual(u.role, 'student')
+    assert.strictEqual(u.role, 'user')
     assert.strictEqual(u.active, true)
   })
 
@@ -24,6 +24,6 @@ describe('User model: role/active/email', function () {
   })
 
   it('rejects an invalid role', async function () {
-    await assert.rejects(() => models.User.create({ email: 'r@x.io', password: 'secret12', role: 'admin' }))
+    await assert.rejects(() => models.User.create({ email: 'r@x.io', password: 'secret12', role: 'teacher' }))
   })
 })
