@@ -18,6 +18,10 @@ describe('generateAvatarURL() gravatar enabled', function () {
     avatars = mock.reRequire('../lib/letter-avatars')
   })
 
+  after(function () {
+    mock.stop('../lib/config')
+  })
+
   it('should return correct urls', function () {
     assert.strictEqual(avatars.generateAvatarURL('Daan Sprenkels', 'hello@dsprenkels.com', true), 'https://www.gravatar.com/avatar/d41b5f3508cc3f31865566a47dd0336b?s=400')
     assert.strictEqual(avatars.generateAvatarURL('Daan Sprenkels', 'hello@dsprenkels.com', false), 'https://www.gravatar.com/avatar/d41b5f3508cc3f31865566a47dd0336b?s=96')
@@ -39,6 +43,10 @@ describe('generateAvatarURL() gravatar disabled', function () {
     }
     mock('../lib/config', testconfig)
     avatars = mock.reRequire('../lib/letter-avatars')
+  })
+
+  after(function () {
+    mock.stop('../lib/config')
   })
 
   it('should return correct urls', function () {
