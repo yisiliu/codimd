@@ -6,9 +6,9 @@ A hands-on checklist to validate every feature added for the institute deploymen
 
 - **App:** http://localhost:3300  (start it with `CMD_PORT=3300 CMD_DOMAIN=localhost CMD_URL_ADDPORT=true NODE_ENV=development CMD_SESSION_SECRET=localdevsecret NODE_OPTIONS=--openssl-legacy-provider node app.js`)
 - **Accounts** (already created on the dev DB):
-  - Owner — `teacher@example.com` / `teachpass123`
+  - Owner — `owner@example.com` / `ownerpass123`
   - Admin — `admin@example.com` / `adminpass123`
-  - User — `student@example.com` / `student123`
+  - User — `user@example.com` / `user123`
 - **Tip:** use two browsers (or one normal + one private window) so you can be the owner in one and a user in the other for the cross-user scenarios.
 - **Sign in:** click **Sign In** → the modal shows only **Sign in via E-Mail** (no Register button — that's the locked-instance behaviour). Enter the email + password.
 
