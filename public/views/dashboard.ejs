@@ -41,6 +41,14 @@
         .dash-note-spaces .space-chip .space-x { cursor: pointer; margin-left: 4px; opacity: .6; }
         .dash-shared-badge { display: inline-block; background: #2e7d32; color: #fff; border-radius: 3px; font-size: 10px; font-weight: 600; padding: 1px 6px; margin-left: 8px; vertical-align: middle; }
         .dash-shared-badge .fa { margin-right: 3px; }
+        .dash-template-badge { display: inline-block; background: #f0ad4e; color: #fff; border-radius: 3px; font-size: 10px; font-weight: 600; padding: 1px 6px; margin-left: 8px; vertical-align: middle; }
+        .dash-template-badge .fa { margin-right: 3px; }
+        .dash-note .dash-template.active { color: #f0ad4e; }
+        #template-list { list-style: none; margin: 0; padding: 0; }
+        #template-list > li > a { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; color: #333; text-decoration: none; border-bottom: 1px solid #eee; }
+        #template-list > li > a:hover { background-color: #f2f2f5; }
+        #template-list .template-owner { font-size: 11px; color: #777; }
+        #template-list .template-owner .fa { margin-right: 4px; opacity: .6; }
         .dash-note-actions .dash-space-add { width: auto; max-width: 160px; }
         .dash-note .dash-pin.pinned { color: #f0ad4e; }
         .dash-empty { text-align: center; padding: 50px 15px; color: #999; }
@@ -117,6 +125,7 @@
                             <a href="#" class="sort btn btn-default" data-sort="text" title="<%= __('Sort by title') %>"><%= __('Title') %></a>
                             <a href="#" class="sort btn btn-default" data-sort="timestamp" title="<%= __('Sort by time') %>"><%= __('Time') %></a>
                             <a href="<%- serverURL %>/new" class="btn btn-primary pull-right"><i class="fa fa-plus"></i> <%= __('New note') %></a>
+                            <button type="button" id="dash-new-from-template" class="btn btn-default pull-right" style="margin-right: 6px;"><i class="fa fa-star"></i> <%= __('New from template') %></button>
                         </form>
 
                         <div class="dash-empty" id="dashboard-empty" style="display: none;">
@@ -184,6 +193,19 @@
 
         <p class="text-center text-muted" style="margin-top: 8px;"><%- __('Powered by %s', '<a href="https://github.com/hackmdio/codimd">CodiMD</a>') %></p>
     </div>
+
+    <div class="modal fade" id="template-modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title"><i class="fa fa-star"></i> <%= __('New from template') %></h4>
+                </div>
+                <div class="modal-body" id="template-modal-body"></div>
+            </div>
+        </div>
+    </div>
+
     <script nonce="<%= nonce %>">
         window.dashboardUser = { id: '<%= userId %>', role: '<%= userRole %>' }
     </script>

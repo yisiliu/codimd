@@ -32,12 +32,15 @@ const options = {
               <i class="fa fa-file-text-o"></i> <span class="text"></span>
             </a>
             <span class="dash-shared-badge" style="display:none;"><i class="fa fa-share-alt"></i>shared</span>
+            <span class="dash-template-badge" style="display:none;"><i class="fa fa-star"></i>template</span>
             <span class="timestamp" style="display:none;"></span>
             <div class="dash-note-tags"></div>
             <div class="dash-note-spaces"></div>
           </div>
           <div class="dash-note-actions">
             <button type="button" class="btn btn-xs btn-default dash-pin" title="Pin"><i class="fa fa-thumb-tack"></i></button>
+            <button type="button" class="btn btn-xs btn-default dash-template" title="Toggle template"><i class="fa fa-star-o"></i></button>
+            <button type="button" class="btn btn-xs btn-default dash-copy" title="Make a copy"><i class="fa fa-copy"></i></button>
             <select class="form-control input-sm dash-move"></select>
             <select class="form-control input-sm dash-space-add" title="Add to shared space"></select>
             <form class="dash-add-tag form-inline">
@@ -62,6 +65,9 @@ const browseOptions = {
             <span class="timestamp" style="display:none;"></span>
             <div class="dash-note-owner"></div>
             <div class="dash-note-spaces"></div>
+          </div>
+          <div class="dash-note-actions">
+            <button type="button" class="btn btn-xs btn-default dash-copy" title="Make a copy"><i class="fa fa-copy"></i></button>
           </div>
         </li>`,
   page: 18,
@@ -228,6 +234,15 @@ noteList.on('updated', () => {
     // pin state
     const $pin = $el.find('.dash-pin')
     if (note.pinned) $pin.addClass('active'); else $pin.removeClass('active')
+    // template state
+    const $template = $el.find('.dash-template')
+    if (note.template) {
+      $template.addClass('active').find('.fa').removeClass('fa-star-o').addClass('fa-star')
+      $el.find('.dash-template-badge').show()
+    } else {
+      $template.removeClass('active').find('.fa').removeClass('fa-star').addClass('fa-star-o')
+      $el.find('.dash-template-badge').hide()
+    }
     // move select
     $el.find('.dash-move').html(moveSelectHtml(note))
     // tag chips
@@ -530,6 +545,76 @@ $('#dashboard-notes').on('click', '.dash-pin', function (e) {
       renderNotes()
     }
   })
+})
+
+// clone a note and open the copy in a new tab
+function cloneNoteAndOpen (encodedId) {
+  return apiSend('POST', `/api/notes/${encodedId}/clone`).then(({ ok, data }) => {
+    if (ok && data && data.id) window.open(`${baseurl}/${data.id}`, '_blank')
+  })
+}
+
+// make a copy (My Notes)
+$('#dashboard-notes').on('click', '.dash-copy', function (e) {
+  e.preventDefault()
+  const encodedId = $(this).closest('li').find('.noteid').text()
+  if (encodedId) cloneNoteAndOpen(encodedId)
+})
+
+// template toggle
+$('#dashboard-notes').on('click', '.dash-template', function (e) {
+  e.preventDefault()
+  const encodedId = $(this).closest('li').find('.noteid').text()
+  const note = noteByEncoded(encodedId)
+  if (!note) return
+  const template = !note.template
+  apiSend('PUT', `/api/notes/${encodedId}/template`, { template }).then(({ ok }) => {
+    if (ok) {
+      note.template = template
+      renderNotes()
+    }
+  })
+})
+
+// make a copy (Browse)
+$('#browse-notes').on('click', '.dash-copy', function (e) {
+  e.preventDefault()
+  const encodedId = $(this).closest('li').find('.noteid').text()
+  if (encodedId) cloneNoteAndOpen(encodedId)
+})
+
+// new from template modal
+function openTemplateModal () {
+  const $body = $('#template-modal-body')
+  $body.html('<p class="text-muted" style="padding: 12px;">Loading…</p>')
+  $('#template-modal').modal('show')
+  apiGet('/api/templates').then(data => {
+    const templates = (data && data.templates) || []
+    if (!templates.length) {
+      $body.html('<p class="text-muted" style="padding: 12px;">No templates yet — mark one of your notes as a template.</p>')
+      return
+    }
+    const $list = $('<ul id="template-list"></ul>')
+    templates.forEach(t => {
+      const $li = $(`<li><a href="#"><span class="template-title">${escapeHtml(t.text || 'Untitled')}</span><span class="template-owner"><i class="fa fa-user-o"></i>${escapeHtml(t.owner || 'Unknown')}</span></a></li>`)
+      $li.find('a').data('templateId', t.id)
+      $list.append($li)
+    })
+    $body.empty().append($list)
+  })
+}
+
+$('#dash-new-from-template').on('click', function (e) {
+  e.preventDefault()
+  openTemplateModal()
+})
+
+$('#template-modal').on('click', '#template-list a', function (e) {
+  e.preventDefault()
+  const encodedId = $(this).data('templateId')
+  if (!encodedId) return
+  $('#template-modal').modal('hide')
+  cloneNoteAndOpen(encodedId)
 })
 
 // add tag
