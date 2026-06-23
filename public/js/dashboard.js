@@ -2,7 +2,6 @@
 /* global serverurl */
 
 import List from 'list.js'
-import { decodeNoteId } from './utils'
 
 require('./locale')
 
@@ -256,7 +255,7 @@ $('#dashboard-notes').on('change', '.dash-move', function () {
   const note = noteByEncoded(encodedId)
   if (!note) return
   const folderId = $(this).val() || null
-  apiSend('PUT', `/api/notes/${decodeNoteId(encodedId)}/folder`, { folderId }).then(({ ok }) => {
+  apiSend('PUT', `/api/notes/${encodedId}/folder`, { folderId }).then(({ ok }) => {
     if (ok) {
       note.folderId = folderId
       renderFolders()
@@ -272,7 +271,7 @@ $('#dashboard-notes').on('click', '.dash-pin', function (e) {
   const note = noteByEncoded(encodedId)
   if (!note) return
   const pinned = !note.pinned
-  apiSend('PUT', `/api/notes/${decodeNoteId(encodedId)}/pin`, { pinned }).then(({ ok }) => {
+  apiSend('PUT', `/api/notes/${encodedId}/pin`, { pinned }).then(({ ok }) => {
     if (ok) {
       note.pinned = pinned
       renderNotes()
@@ -289,7 +288,7 @@ $('#dashboard-notes').on('submit', '.dash-add-tag', function (e) {
   if (!note) return
   const tag = $li.find('.dash-tag-input').val().trim().toLowerCase()
   if (!tag) return
-  apiSend('POST', `/api/notes/${decodeNoteId(encodedId)}/tags`, { tag }).then(({ ok }) => {
+  apiSend('POST', `/api/notes/${encodedId}/tags`, { tag }).then(({ ok }) => {
     if (ok) {
       $li.find('.dash-tag-input').val('')
       note.userTags = note.userTags || []
@@ -308,7 +307,7 @@ $('#dashboard-notes').on('click', '.dash-tag-remove', function (e) {
   const note = noteByEncoded(encodedId)
   if (!note) return
   const tag = $(this).closest('.dash-tag-chip').data('tag')
-  apiSend('DELETE', `/api/notes/${decodeNoteId(encodedId)}/tags/${encodeURIComponent(tag)}`).then(({ ok }) => {
+  apiSend('DELETE', `/api/notes/${encodedId}/tags/${encodeURIComponent(tag)}`).then(({ ok }) => {
     if (ok) {
       note.userTags = (note.userTags || []).filter(t => t !== tag)
       renderNotes()

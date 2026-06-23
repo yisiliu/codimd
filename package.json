@@ -198,6 +198,7 @@
     "store": "~2.0.12",
     "string-loader": "~0.0.1",
     "style-loader": "~0.23.1",
+    "supertest": "^6.3.4",
     "tedious": "~6.2.0",
     "turndown": "^7.1.1",
     "typo-js": "^1.0.3",
