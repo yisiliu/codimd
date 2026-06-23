@@ -117,7 +117,7 @@
                     <div class="panel-body" id="dashboard-list">
                         <form class="form-inline dash-toolbar" id="dashboard-toolbar">
                             <div class="form-group" style="vertical-align: bottom;">
-                                <input class="form-control ui-use-tags" id="dashboard-tags" placeholder="<%= __('Select tags...') %>">
+                                <select class="form-control" id="dashboard-tags" title="<%= __('Filter by tag') %>"><option value=""><%= __('All tags') %></option></select>
                             </div>
                             <div class="form-group">
                                 <input class="search form-control" placeholder="<%= __('Search keyword...') %>">
