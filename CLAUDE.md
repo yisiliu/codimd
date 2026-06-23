@@ -88,12 +88,13 @@ Webpack configs: `webpack.common.js` (shared, ~20 entry/vendor chunks), `webpack
 
 For closed (invite-only) deployments:
 
-- **Roles & state:** `User.role` is `'teacher'` | `'student'`; `User.active` gates access. `requireTeacher` (`lib/web/middleware/requireTeacher.js`) admits only authenticated, **active** teachers.
-- **Invite-only entry:** sign-up flows through `lib/invite` (`/invite/:token`, GET form + POST redemption). Redemption is transactional with an atomic compare-and-set on `usedCount`, so an invite can't be over-redeemed past `maxUses`; the new user is created with the invite's role.
-- **Teacher admin panel:** `lib/admin` (`/admin`, guarded by `requireTeacher`) creates/revokes invites and activates/deactivates/sets-role on users. A **last-active-teacher guard** (atomic, row-locking) blocks removing or demoting the final teacher.
-- **Deactivation is immediate:** flipping `active = false` de-auths existing **web sessions** (`deserializeUser` in `lib/auth/index.js` rejects inactive users) **and** live **editor sockets** (`disconnectUser` in `lib/realtime/`). `setRole` to `student` also disconnects sockets.
+- **Roles & state:** `User.role` is `'user'` | `'admin'` | `'owner'`; `User.active` gates access. `requireAdmin` (`lib/web/middleware/requireAdmin.js`) admits authenticated, **active** admins **or** owners; `requireOwner` (`lib/web/middleware/requireOwner.js`) admits only active **owners** and guards role changes.
+- **Invite-only entry:** sign-up flows through `lib/invite` (`/invite/:token`, GET form + POST redemption). Redemption is transactional with an atomic compare-and-set on `usedCount`, so an invite can't be over-redeemed past `maxUses`; invites onboard **`user`** only (no role picker) and the new user is created as a `user`.
+- **Admin panel:** `lib/admin` (`/admin`, guarded by `requireAdmin`) lets admins+owners create/revoke invites and activate/deactivate users; **role changes** (`setRole`) are **owner-only** (the role route is additionally gated by `requireOwner`). A **last-active-owner guard** (atomic, row-locking) blocks removing or demoting the final owner.
+- **Deactivation is immediate:** flipping `active = false` de-auths existing **web sessions** (`deserializeUser` in `lib/auth/index.js` rejects inactive users) **and** live **editor sockets** (`disconnectUser` in `lib/realtime/`). Role no longer gates note access (only `active` does), so `setRole` does **not** disconnect sockets.
 - **Provider auto-register gate:** SSO logins only auto-create accounts when `config.allowProviderAutoRegister` is true (default false) — see `lib/auth`’s provider strategies.
-- **Bootstrap:** the first teacher is created on the CLI via `bin/manage_users --add --role teacher <email>` (or `--promote <email>`) — the only path that survives a locked config.
+- **Migration to user/admin/owner:** `lib/migrations/20260624000001-roles-user-admin-owner.js` maps `teacher`→`admin` / `student`→`user` and auto-promotes the **earliest active former-teacher** (by `createdAt`, `id` tiebreak) to `owner`.
+- **Bootstrap:** the first owner is created on the CLI via `bin/manage_users --add --role owner <email>` (`--add --role admin <email>` for an admin; `--promote <email>` promotes to `admin`) — the only path that survives a locked config.
 - **Locked-instance preset & full procedure:** set `allowEmailRegister`/`allowAnonymous`/`allowAnonymousEdits`/`allowProviderAutoRegister` to false and leave non-email provider credentials unset (providers are enabled by credential presence, see `isXxxEnable` in `lib/config/index.js`). Full first-run runbook: `docs/institute-runbook.md`.
 
 ## Notes dashboard (signed-in home)
@@ -109,7 +110,7 @@ For signed-in users, the home page (`/`) renders a personal **Notes Dashboard** 
 
 The dashboard has a **My Notes ⇄ Browse** toggle:
 - **Spaces** (`lib/models/space.js`, case-insensitive-unique via a `nameLower` column) are institute-wide shared collections any member creates; `NoteSpace` (`lib/models/notespace.js`) is the owner's opt-in many-to-many link. Cleanup is app-level (space delete → its `NoteSpace` rows; note delete → `cleanupNoteOrganization` also clears `NoteSpace`).
-- **API** in `lib/browse` (same `/api/*`-only, per-route-auth, mounted-above-`/:noteId` discipline): `GET/POST /api/spaces` (any member), `PUT/DELETE /api/spaces/:id` (**creator or teacher**), `PUT /api/notes/:id/spaces` (**owner**), `GET /api/browse?space=`.
+- **API** in `lib/browse` (same `/api/*`-only, per-route-auth, mounted-above-`/:noteId` discipline): `GET/POST /api/spaces` (any member), `PUT/DELETE /api/spaces/:id` (**creator or owner**), `PUT /api/notes/:id/spaces` (**owner**), `GET /api/browse?space=`.
 - **Browse visibility** lists a categorized note for a viewer iff `(permission IS NULL OR permission != 'private') OR ownerId = me` — i.e. it never exposes a note the viewer couldn't already open. Search is client-side (`list.js`).
 
 ### Copy & templates (teaching workflow)
