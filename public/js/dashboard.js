@@ -341,6 +341,7 @@ function renderBrowseSpaces () {
       </li>`)
     $li.find('.space-name').text(space.name)
     $li.find('.folder-count').text(space.count || 0)
+    $li.find('.space-actions').append('<i class="fa fa-users dash-space-members" title="Members"></i>')
     if (canManageSpace(space)) {
       $li.find('.space-actions')
         .append('<i class="fa fa-pencil dash-rename-space" title="Rename"></i>')
@@ -633,6 +634,142 @@ $('#template-modal').on('click', '#template-list a', function (e) {
   if (!encodedId) return
   $('#template-modal').modal('hide')
   cloneNoteAndOpen(encodedId)
+})
+
+// --- members modal ---
+
+let membersSpaceId = null
+
+function openMembersModal (spaceId) {
+  membersSpaceId = spaceId
+  $('.members-modal-space').text(spaceName(spaceId) ? `· ${spaceName(spaceId)}` : '')
+  $('#members-modal-body').html('<p class="text-muted" style="padding: 12px;">Loading…</p>')
+  $('#members-modal').modal('show')
+  loadMembers(spaceId)
+}
+
+function loadMembers (spaceId) {
+  return Promise.all([
+    apiGet(`/api/spaces/${spaceId}/members`),
+    apiGet('/api/users')
+  ]).then(([membersData, usersData]) => {
+    if (String(membersSpaceId) !== String(spaceId)) return
+    const members = (membersData && membersData.members) || []
+    const users = (usersData && usersData.users) || []
+    renderMembers(spaceId, members, users)
+  })
+}
+
+function renderMembers (spaceId, members, users) {
+  const $body = $('#members-modal-body')
+  $body.empty()
+  // viewer's steward status from the fresh list (stays correct after a transfer)
+  const me = members.find(m => String(m.id) === String(dashboardUser.id))
+  const canManage = (me && me.isSteward) || dashboardUser.role === 'owner'
+
+  const $list = $('<ul id="members-list"></ul>')
+  members.forEach(member => {
+    const isSelf = String(member.id) === String(dashboardUser.id)
+    const $li = $('<li></li>')
+    const $name = $('<span class="member-name"><i class="fa fa-user-o"></i></span>')
+    $name.append(document.createTextNode(member.name || 'Unknown'))
+    if (member.isSteward) $name.append('<span class="member-steward-badge"><i class="fa fa-star"></i>steward</span>')
+    $li.append($name)
+
+    const $actions = $('<span class="member-actions"></span>')
+    if (!member.isSteward && canManage && !isSelf) {
+      const $makeSteward = $('<button type="button" class="btn btn-xs btn-default member-make-steward" title="Make steward"><i class="fa fa-star-o"></i> Make steward</button>')
+      $makeSteward.data('userId', member.id)
+      $actions.append($makeSteward)
+    }
+    if (isSelf && !member.isSteward) {
+      const $leave = $('<button type="button" class="btn btn-xs btn-default member-leave" title="Leave space"><i class="fa fa-sign-out"></i> Leave</button>')
+      $leave.data('userId', member.id)
+      $actions.append($leave)
+    }
+    if (!isSelf && !member.isSteward && canManage) {
+      const $remove = $('<button type="button" class="btn btn-xs btn-default member-remove" title="Remove member">&times;</button>')
+      $remove.data('userId', member.id)
+      $actions.append($remove)
+    }
+    $li.append($actions)
+    $list.append($li)
+  })
+  $body.append($list)
+
+  // add-member control (any member): users minus current members
+  const memberIds = members.map(m => String(m.id))
+  const candidates = users.filter(u => !memberIds.includes(String(u.id)))
+  const $add = $('<form class="form-inline members-add"></form>')
+  const $group = $('<div class="input-group input-group-sm"></div>')
+  const $select = $('<select class="form-control members-add-select"></select>')
+  if (candidates.length) {
+    $select.append('<option value="">Add a member…</option>')
+    candidates.forEach(u => {
+      const $opt = $('<option></option>').attr('value', u.id).text(u.name || 'Unknown')
+      $select.append($opt)
+    })
+  } else {
+    $select.append('<option value="">No users to add</option>').prop('disabled', true)
+  }
+  $group.append($select)
+  $group.append('<span class="input-group-btn"><button type="submit" class="btn btn-default members-add-btn"><i class="fa fa-plus"></i> Add</button></span>')
+  $add.append($group)
+  $body.append($add)
+}
+
+$('#browse-spaces').on('click', '.dash-space-members', function (e) {
+  e.preventDefault()
+  e.stopPropagation()
+  const spaceId = $(this).closest('li').data('spaceId')
+  if (spaceId) openMembersModal(spaceId)
+})
+
+// add a member
+$('#members-modal').on('submit', '.members-add', function (e) {
+  e.preventDefault()
+  const userId = $(this).find('.members-add-select').val()
+  if (!userId || !membersSpaceId) return
+  apiSend('POST', `/api/spaces/${membersSpaceId}/members`, { userId }).then(({ ok }) => {
+    if (ok) loadMembers(membersSpaceId)
+  })
+})
+
+// make another member the steward
+$('#members-modal').on('click', '.member-make-steward', function (e) {
+  e.preventDefault()
+  const userId = $(this).data('userId')
+  if (!userId || !membersSpaceId) return
+  apiSend('PUT', `/api/spaces/${membersSpaceId}/steward`, { userId }).then(({ ok }) => {
+    if (ok) loadMembers(membersSpaceId)
+  })
+})
+
+// remove another member
+$('#members-modal').on('click', '.member-remove', function (e) {
+  e.preventDefault()
+  const userId = $(this).data('userId')
+  if (!userId || !membersSpaceId) return
+  apiSend('DELETE', `/api/spaces/${membersSpaceId}/members/${userId}`).then(({ ok }) => {
+    if (ok) loadMembers(membersSpaceId)
+  })
+})
+
+// leave the space (own row) — re-load the sidebar since the space disappears for the viewer
+$('#members-modal').on('click', '.member-leave', function (e) {
+  e.preventDefault()
+  const userId = $(this).data('userId')
+  if (!userId || !membersSpaceId) return
+  // eslint-disable-next-line no-alert
+  if (!window.confirm(`Leave space "${spaceName(membersSpaceId)}"?`)) return
+  const leftSpaceId = membersSpaceId
+  apiSend('DELETE', `/api/spaces/${membersSpaceId}/members/${userId}`).then(({ ok }) => {
+    if (ok) {
+      $('#members-modal').modal('hide')
+      if (String(currentSpace) === String(leftSpaceId)) currentSpace = 'all'
+      loadBrowse()
+    }
+  })
 })
 
 // filter notes by tag
