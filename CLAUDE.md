@@ -103,4 +103,16 @@ For signed-in users, the home page (`/`) renders a personal **Notes Dashboard** 
 - **Organization model:** flat `Folder`s (`lib/models/folder.js`, per-owner unique name) and user-applied `NoteTag`s (`lib/models/notetag.js`, normalized lowercase), plus two owner-personal columns on `Note` — `folderId` (one folder per note) and `pinned`. Pin is a real column, **not** the legacy history JSON.
 - **API:** owner-guarded `/api/*` endpoints in `lib/dashboard` (folders CRUD, `PUT /api/notes/:id/folder|pin`, `POST/DELETE .../tags`). Session-auth only (no csurf, matching `/api/notes/*`). The router defines **only** `/api/*` routes and is mounted above the `/:noteId` catch-all — it carries no root-level `router.use(guard)` (see the Slice-1 admin-router leak lesson).
 - **No DB foreign keys:** this repo emits no enforced FKs except a legacy `Notes.ownerId`. Organization cleanup is **explicit app-level** code — deleting a folder nulls its notes' `folderId`; deleting a note removes its `NoteTag` rows (`cleanupNoteOrganization` in `lib/note`).
-- **Note IDs:** `getMyNoteList` returns base64url-**encoded** ids; the dashboard client decodes before calling the raw-UUID mutation routes. (A cleaner future fix: parse the encoded id server-side in the router.)
+- **Note IDs:** `getMyNoteList` returns base64url-**encoded** ids; the client sends them as-is and the router parses them server-side via `Note.parseNoteIdAsync` (the canonical id chain — the client must not reimplement decoding).
+
+### Shared spaces & Browse
+
+The dashboard has a **My Notes ⇄ Browse** toggle:
+- **Spaces** (`lib/models/space.js`, case-insensitive-unique via a `nameLower` column) are institute-wide shared collections any member creates; `NoteSpace` (`lib/models/notespace.js`) is the owner's opt-in many-to-many link. Cleanup is app-level (space delete → its `NoteSpace` rows; note delete → `cleanupNoteOrganization` also clears `NoteSpace`).
+- **API** in `lib/browse` (same `/api/*`-only, per-route-auth, mounted-above-`/:noteId` discipline): `GET/POST /api/spaces` (any member), `PUT/DELETE /api/spaces/:id` (**creator or teacher**), `PUT /api/notes/:id/spaces` (**owner**), `GET /api/browse?space=`.
+- **Browse visibility** lists a categorized note for a viewer iff `(permission IS NULL OR permission != 'private') OR ownerId = me` — i.e. it never exposes a note the viewer couldn't already open. Search is client-side (`list.js`).
+
+### Testing notes (org/dashboard/browse)
+
+- `test/helpers/db.js` (`{ models, resetDb }`) syncs models to sqlite `:memory:`. **`Notes.ownerId` is an enforced FK on sqlite** (its association carries `onDelete:'CASCADE'`), so any test creating a `Note` must seed a real `User` (`User.create({})` — no password, no scrypt). Notes whose title is asserted need non-empty `content` (the `beforeCreate` hook overwrites empty-content titles from `public/default.md`).
+- **HTTP route tests** use `test/helpers/httpApp.js` (`buildApp(user)` → mounts real `lib/routes` with injectable fake-auth, via `supertest`). The test file must manage the lib require-cache (`removeLibModuleCache` before/after + one shared `models` instance) or it pollutes the mock-based realtime suite — see `test/http/routing.test.js` for the pattern.

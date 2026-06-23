@@ -13,7 +13,15 @@ const baseurl = (typeof serverurl !== 'undefined' && serverurl) ? serverurl : ''
 // state
 let notes = []
 let folders = []
+let spaces = []
 let currentFolder = 'all' // 'all' | 'unfiled' | folderId
+
+// browse state
+const dashboardUser = (typeof window !== 'undefined' && window.dashboardUser) || { id: '', role: '' }
+let browseSpaces = []
+let browseNotes = []
+let currentSpace = 'all' // 'all' | spaceId
+let browseLoaded = false
 
 const options = {
   valueNames: ['text', 'timestamp', 'noteid'],
@@ -23,12 +31,15 @@ const options = {
             <a class="dash-note-link" target="_blank">
               <i class="fa fa-file-text-o"></i> <span class="text"></span>
             </a>
+            <span class="dash-shared-badge" style="display:none;"><i class="fa fa-share-alt"></i>shared</span>
             <span class="timestamp" style="display:none;"></span>
             <div class="dash-note-tags"></div>
+            <div class="dash-note-spaces"></div>
           </div>
           <div class="dash-note-actions">
             <button type="button" class="btn btn-xs btn-default dash-pin" title="Pin"><i class="fa fa-thumb-tack"></i></button>
             <select class="form-control input-sm dash-move"></select>
+            <select class="form-control input-sm dash-space-add" title="Add to shared space"></select>
             <form class="dash-add-tag form-inline">
               <input type="text" class="form-control input-sm dash-tag-input" placeholder="+ tag">
             </form>
@@ -39,6 +50,25 @@ const options = {
 }
 
 const noteList = new List('dashboard-list', options)
+
+const browseOptions = {
+  valueNames: ['text', 'timestamp', 'noteid'],
+  item: `<li class="dash-note">
+          <span class="noteid" style="display:none;"></span>
+          <div class="dash-note-main">
+            <a class="dash-note-link" target="_blank">
+              <i class="fa fa-file-text-o"></i> <span class="text"></span>
+            </a>
+            <span class="timestamp" style="display:none;"></span>
+            <div class="dash-note-owner"></div>
+            <div class="dash-note-spaces"></div>
+          </div>
+        </li>`,
+  page: 18,
+  pagination: [{ outerWindow: 1 }]
+}
+
+const browseList = new List('browse-list', browseOptions)
 
 // --- fetch helpers (same-origin, session cookie) ---
 
@@ -60,10 +90,12 @@ function apiSend (method, path, body) {
 function load () {
   Promise.all([
     apiGet('/api/notes/myNotes'),
-    apiGet('/api/folders')
-  ]).then(([notesData, foldersData]) => {
+    apiGet('/api/folders'),
+    apiGet('/api/spaces')
+  ]).then(([notesData, foldersData, spacesData]) => {
     notes = (notesData && notesData.myNotes) || []
     folders = (foldersData && foldersData.folders) || []
+    spaces = (spacesData && spacesData.spaces) || []
     renderFolders()
     renderNotes()
   })
@@ -147,6 +179,20 @@ function moveSelectHtml (note) {
   return html
 }
 
+function noteSpaceIds (note) {
+  return (note.spaces || []).map(s => String(s.id))
+}
+
+function spaceAddSelectHtml (note) {
+  const have = noteSpaceIds(note)
+  const available = spaces.filter(s => !have.includes(String(s.id)))
+  let html = '<option value="">+ space</option>'
+  available.forEach(space => {
+    html += `<option value="${space.id}">${escapeHtml(space.name)}</option>`
+  })
+  return html
+}
+
 function refreshMoveSelects () {
   $('#dashboard-notes .dash-move').each(function () {
     const note = noteByEncoded($(this).closest('li').find('.noteid').text())
@@ -193,8 +239,215 @@ noteList.on('updated', () => {
       $tags.append($chip)
       $tags.append(' ')
     })
+    // shared badge
+    const noteSpaces = note.spaces || []
+    if (noteSpaces.length) $el.find('.dash-shared-badge').show(); else $el.find('.dash-shared-badge').hide()
+    // space chips (distinct from private tag chips)
+    const $spaces = $el.find('.dash-note-spaces')
+    $spaces.empty()
+    if (noteSpaces.length) {
+      $spaces.append('<span class="dash-spaces-label"><i class="fa fa-share-alt"></i>Spaces:</span>')
+      noteSpaces.forEach(space => {
+        const $chip = $(`<span class="space-chip">${escapeHtml(space.name)}<a href="#" class="space-x" title="Remove from space">&times;</a></span>`)
+        $chip.data('spaceId', space.id)
+        $spaces.append($chip)
+        $spaces.append(' ')
+      })
+    }
+    // space add select
+    $el.find('.dash-space-add').html(spaceAddSelectHtml(note))
   })
 })
+
+// --- browse view ---
+
+function canManageSpace (space) {
+  return String(space.createdById) === String(dashboardUser.id) || dashboardUser.role === 'teacher'
+}
+
+function spaceName (spaceId) {
+  const s = browseSpaces.find(s => String(s.id) === String(spaceId))
+  return s ? s.name : ''
+}
+
+function loadBrowse () {
+  return Promise.all([
+    apiGet('/api/spaces'),
+    apiGet(`/api/browse${currentSpace === 'all' ? '' : `?space=${encodeURIComponent(currentSpace)}`}`)
+  ]).then(([spacesData, browseData]) => {
+    browseSpaces = (spacesData && spacesData.spaces) || []
+    browseNotes = (browseData && browseData.notes) || []
+    renderBrowseSpaces()
+    renderBrowseNotes()
+    browseLoaded = true
+  })
+}
+
+function loadBrowseNotes () {
+  return apiGet(`/api/browse${currentSpace === 'all' ? '' : `?space=${encodeURIComponent(currentSpace)}`}`).then(browseData => {
+    browseNotes = (browseData && browseData.notes) || []
+    renderBrowseNotes()
+  })
+}
+
+function renderBrowseSpaces () {
+  const $list = $('#browse-spaces')
+  $list.find('li[data-space-row]').remove()
+  const total = browseSpaces.reduce((sum, s) => sum + (s.count || 0), 0)
+  $list.find('[data-count="all"]').text(total)
+  const $all = $list.find('li[data-space="all"]')
+  let prev = $all
+  browseSpaces.forEach(space => {
+    const $li = $(`<li data-space-row data-space="${space.id}">
+        <a href="#" data-space="${space.id}">
+          <span><i class="fa fa-share-alt"></i> <span class="space-name"></span></span>
+          <span class="space-actions">
+            <span class="folder-count" data-count="${space.id}"></span>
+          </span>
+        </a>
+      </li>`)
+    $li.find('.space-name').text(space.name)
+    $li.find('.folder-count').text(space.count || 0)
+    if (canManageSpace(space)) {
+      $li.find('.space-actions')
+        .append('<i class="fa fa-pencil dash-rename-space" title="Rename"></i>')
+        .append('<i class="fa fa-trash dash-delete-space" title="Delete"></i>')
+    }
+    $li.data('spaceId', space.id)
+    prev.after($li)
+    prev = $li
+  })
+  $list.find('li').removeClass('active')
+  $list.find(`li[data-space="${currentSpace}"]`).addClass('active')
+  $('#browse-spaces-empty').toggle(browseSpaces.length === 0)
+}
+
+function renderBrowseNotes () {
+  browseList.clear()
+  browseNotes.forEach(note => {
+    browseList.add({
+      noteid: note.id,
+      text: note.text || 'Untitled',
+      timestamp: note.lastchangeAt ? new Date(note.lastchangeAt).getTime() : 0
+    })
+  })
+  browseList.sort('', {
+    sortFunction (a, b) {
+      return (b.values().timestamp || 0) - (a.values().timestamp || 0)
+    }
+  })
+  checkBrowseEmpty()
+}
+
+function browseNoteByEncoded (encodedId) {
+  return browseNotes.find(n => n.id === encodedId)
+}
+
+function checkBrowseEmpty () {
+  const matching = browseList.matchingItems ? browseList.matchingItems.length : browseList.items.length
+  if (matching === 0) {
+    $('#browse-empty').show()
+    $('#browse-notes').hide()
+    $('#browse-list .pagination').hide()
+  } else {
+    $('#browse-empty').hide()
+    $('#browse-notes').show()
+    $('#browse-list .pagination').show()
+  }
+}
+
+browseList.on('updated', () => {
+  browseList.items.forEach(item => {
+    if (!item.visible()) return
+    const $el = $(item.elm)
+    const note = browseNoteByEncoded(item.values().noteid)
+    if (!note) return
+    $el.find('.dash-note-link').attr('href', `${baseurl}/${note.id}`)
+    const $owner = $el.find('.dash-note-owner')
+    $owner.empty().append('<i class="fa fa-user-o"></i>').append(document.createTextNode(note.owner || 'Unknown'))
+    const $spaces = $el.find('.dash-note-spaces')
+    $spaces.empty()
+    const noteSpaces = note.spaces || []
+    if (noteSpaces.length) {
+      $spaces.append('<span class="dash-spaces-label"><i class="fa fa-share-alt"></i>Spaces:</span>')
+      noteSpaces.forEach(space => {
+        const $chip = $(`<span class="space-chip">${escapeHtml(space.name)}</span>`)
+        $spaces.append($chip)
+        $spaces.append(' ')
+      })
+    }
+  })
+})
+
+// toggle My Notes / Browse views
+$('#dash-view-mynotes').on('click', function () {
+  $(this).addClass('active')
+  $('#dash-view-browse').removeClass('active')
+  $('#dashboard-mynotes-view').show()
+  $('#dashboard-browse-view').hide()
+})
+
+$('#dash-view-browse').on('click', function () {
+  $(this).addClass('active')
+  $('#dash-view-mynotes').removeClass('active')
+  $('#dashboard-mynotes-view').hide()
+  $('#dashboard-browse-view').show()
+  if (!browseLoaded) loadBrowse()
+})
+
+// switch space
+$('#browse-spaces').on('click', 'a[data-space]', function (e) {
+  e.preventDefault()
+  currentSpace = $(this).attr('data-space')
+  $('#browse-spaces li').removeClass('active')
+  $(this).closest('li').addClass('active')
+  loadBrowseNotes()
+})
+
+// create space
+$('#create-space-form').on('submit', function (e) {
+  e.preventDefault()
+  const name = $('#create-space-name').val().trim()
+  if (!name) return
+  apiSend('POST', '/api/spaces', { name }).then(({ ok }) => {
+    if (ok) {
+      $('#create-space-name').val('')
+      loadBrowse()
+    }
+  })
+})
+
+// rename space
+$('#browse-spaces').on('click', '.dash-rename-space', function (e) {
+  e.preventDefault()
+  e.stopPropagation()
+  const spaceId = $(this).closest('li').data('spaceId')
+  const current = spaceName(spaceId)
+  // eslint-disable-next-line no-alert
+  const name = window.prompt('Rename space', current)
+  if (name === null) return
+  const trimmed = name.trim()
+  if (!trimmed || trimmed === current) return
+  apiSend('PUT', `/api/spaces/${spaceId}`, { name: trimmed }).then(({ ok }) => { if (ok) loadBrowse() })
+})
+
+// delete space
+$('#browse-spaces').on('click', '.dash-delete-space', function (e) {
+  e.preventDefault()
+  e.stopPropagation()
+  const spaceId = $(this).closest('li').data('spaceId')
+  // eslint-disable-next-line no-alert
+  if (!window.confirm(`Delete space "${spaceName(spaceId)}"? Notes will be unlinked from it.`)) return
+  apiSend('DELETE', `/api/spaces/${spaceId}`).then(({ ok }) => {
+    if (ok) {
+      if (String(currentSpace) === String(spaceId)) currentSpace = 'all'
+      loadBrowse()
+    }
+  })
+})
+
+// browse search keeps the empty-state in sync
+$('#browse-list .search').on('keyup', () => { setTimeout(checkBrowseEmpty, 0) })
 
 // --- actions ---
 
@@ -313,6 +566,41 @@ $('#dashboard-notes').on('click', '.dash-tag-remove', function (e) {
       renderNotes()
     }
   })
+})
+
+function saveNoteSpaces (encodedId, note, nextSpaces) {
+  const spaceIds = nextSpaces.map(s => s.id)
+  return apiSend('PUT', `/api/notes/${encodedId}/spaces`, { spaceIds }).then(({ ok }) => {
+    if (ok) {
+      note.spaces = nextSpaces
+      renderNotes()
+    }
+  })
+}
+
+// add note to a shared space
+$('#dashboard-notes').on('change', '.dash-space-add', function () {
+  const encodedId = $(this).closest('li').find('.noteid').text()
+  const note = noteByEncoded(encodedId)
+  if (!note) return
+  const spaceId = $(this).val()
+  if (!spaceId) return
+  const space = spaces.find(s => String(s.id) === String(spaceId))
+  if (!space) return
+  const current = note.spaces || []
+  if (current.some(s => String(s.id) === String(spaceId))) return
+  saveNoteSpaces(encodedId, note, current.concat([{ id: space.id, name: space.name }]))
+})
+
+// remove note from a shared space
+$('#dashboard-notes').on('click', '.space-x', function (e) {
+  e.preventDefault()
+  const encodedId = $(this).closest('li').find('.noteid').text()
+  const note = noteByEncoded(encodedId)
+  if (!note) return
+  const spaceId = $(this).closest('.space-chip').data('spaceId')
+  const next = (note.spaces || []).filter(s => String(s.id) !== String(spaceId))
+  saveNoteSpaces(encodedId, note, next)
 })
 
 // search keeps the empty-state in sync
