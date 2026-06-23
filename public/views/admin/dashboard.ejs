@@ -45,13 +45,6 @@
                 <form method="post" action="<%- serverURL %>/admin/invites" class="form-inline">
                     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <div class="form-group">
-                        <label><%= __('Role') %></label>
-                        <select name="role" class="form-control">
-                            <option value="student"><%= __('Student') %></option>
-                            <option value="teacher"><%= __('Teacher') %></option>
-                        </select>
-                    </div>
-                    <div class="form-group">
                         <label><%= __('Max uses') %></label>
                         <input type="number" name="maxUses" class="form-control" min="1" value="1" style="width: 90px;">
                     </div>
@@ -77,7 +70,7 @@
                     <% } %>
                     <% invites.forEach(function (i) { %>
                     <tr>
-                        <td><span class="label label-<%= i.role === 'teacher' ? 'primary' : 'default' %>"><%= i.role %></span></td>
+                        <td><span class="label label-<%= i.role === 'owner' ? 'danger' : (i.role === 'admin' ? 'info' : 'default') %>"><%= i.role %></span></td>
                         <td><%= i.usedCount %> / <%= i.maxUses %></td>
                         <td><%= new Date(i.expiresAt).toISOString().slice(0, 10) %></td>
                         <td><code class="invite-link"><%- serverURL %>/invite/<%= i.token %></code></td>
@@ -103,24 +96,22 @@
                     <% users.forEach(function (u) { var isSelf = me && String(me.id) === String(u.id) %>
                     <tr>
                         <td><%= u.email || __('(external account)') %><% if (isSelf) { %> <span class="label label-info"><%= __('you') %></span><% } %></td>
-                        <td><span class="label label-<%= u.role === 'teacher' ? 'primary' : 'default' %>"><%= u.role %></span></td>
+                        <td><span class="label label-<%= u.role === 'owner' ? 'danger' : (u.role === 'admin' ? 'info' : 'default') %>"><%= u.role %></span></td>
                         <td>
                             <% if (u.active) { %><span class="text-success"><i class="fa fa-check-circle"></i> <%= __('active') %></span>
                             <% } else { %><span class="text-muted"><i class="fa fa-ban"></i> <%= __('deactivated') %></span><% } %>
                         </td>
                         <td><%= new Date(u.createdAt).toISOString().slice(0, 10) %></td>
                         <td class="text-right row-actions">
-                            <% if (u.role === 'teacher') { %>
-                            <form method="post" action="<%- serverURL %>/admin/users/<%= u.id %>/role"<% if (isSelf) { %> data-confirm="<%= __('Demote your own account?') %>"<% } %>>
+                            <% if (me.role === 'owner') { %>
+                            <form method="post" action="<%- serverURL %>/admin/users/<%= u.id %>/role" class="form-inline"<% if (isSelf) { %> data-confirm="<%= __('Change your own role?') %>"<% } %>>
                                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                                <input type="hidden" name="role" value="student">
-                                <button type="submit" class="btn btn-xs btn-default"><i class="fa fa-level-down"></i> <%= __('Demote') %></button>
-                            </form>
-                            <% } else { %>
-                            <form method="post" action="<%- serverURL %>/admin/users/<%= u.id %>/role">
-                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                                <input type="hidden" name="role" value="teacher">
-                                <button type="submit" class="btn btn-xs btn-default"><i class="fa fa-level-up"></i> <%= __('Promote') %></button>
+                                <select name="role" class="form-control input-sm" style="width: auto;">
+                                    <option value="user"<% if (u.role === 'user') { %> selected<% } %>><%= __('User') %></option>
+                                    <option value="admin"<% if (u.role === 'admin') { %> selected<% } %>><%= __('Admin') %></option>
+                                    <option value="owner"<% if (u.role === 'owner') { %> selected<% } %>><%= __('Owner') %></option>
+                                </select>
+                                <button type="submit" class="btn btn-xs btn-default"><%= __('Set role') %></button>
                             </form>
                             <% } %>
                             <% if (u.active) { %>

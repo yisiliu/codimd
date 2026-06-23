@@ -15,6 +15,7 @@ let notes = []
 let folders = []
 let spaces = []
 let currentFolder = 'all' // 'all' | 'unfiled' | folderId
+let currentTag = '' // '' = all tags, else a user-tag
 
 // browse state
 const dashboardUser = (typeof window !== 'undefined' && window.dashboardUser) || { id: '', role: '' }
@@ -44,7 +45,10 @@ const options = {
             <select class="form-control input-sm dash-move"></select>
             <select class="form-control input-sm dash-space-add" title="Add to shared space"></select>
             <form class="dash-add-tag form-inline">
-              <input type="text" class="form-control input-sm dash-tag-input" placeholder="+ tag">
+              <div class="input-group input-group-sm">
+                <input type="text" class="form-control dash-tag-input" placeholder="Add tag">
+                <span class="input-group-btn"><button type="submit" class="btn btn-default" title="Add tag"><i class="fa fa-plus"></i></button></span>
+              </div>
             </form>
           </div>
         </li>`,
@@ -113,9 +117,22 @@ function folderName (folderId) {
 }
 
 function visibleNotes () {
-  if (currentFolder === 'all') return notes
-  if (currentFolder === 'unfiled') return notes.filter(n => !n.folderId)
-  return notes.filter(n => String(n.folderId) === String(currentFolder))
+  let list = notes
+  if (currentFolder === 'unfiled') list = list.filter(n => !n.folderId)
+  else if (currentFolder !== 'all') list = list.filter(n => String(n.folderId) === String(currentFolder))
+  if (currentTag) list = list.filter(n => (n.userTags || []).indexOf(currentTag) >= 0)
+  return list
+}
+
+// populate the "filter by tag" dropdown from the current notes' user-tags
+function renderTagFilter () {
+  const $sel = $('#dashboard-tags')
+  if (!$sel.length) return
+  const allTags = Array.from(new Set([].concat.apply([], notes.map(n => n.userTags || [])))).sort()
+  if (allTags.indexOf(currentTag) < 0) currentTag = ''
+  $sel.empty().append($('<option>', { value: '', text: 'All tags' }))
+  allTags.forEach(t => $sel.append($('<option>', { value: t, text: t })))
+  $sel.val(currentTag)
 }
 
 function renderFolders () {
@@ -151,6 +168,7 @@ function renderFolders () {
 }
 
 function renderNotes () {
+  renderTagFilter()
   const list = visibleNotes()
   noteList.clear()
   list.forEach(note => {
@@ -277,7 +295,7 @@ noteList.on('updated', () => {
 // --- browse view ---
 
 function canManageSpace (space) {
-  return String(space.createdById) === String(dashboardUser.id) || dashboardUser.role === 'teacher'
+  return String(space.createdById) === String(dashboardUser.id) || dashboardUser.role === 'owner'
 }
 
 function spaceName (spaceId) {
@@ -615,6 +633,12 @@ $('#template-modal').on('click', '#template-list a', function (e) {
   if (!encodedId) return
   $('#template-modal').modal('hide')
   cloneNoteAndOpen(encodedId)
+})
+
+// filter notes by tag
+$('#dashboard-tags').on('change', function () {
+  currentTag = $(this).val()
+  renderNotes()
 })
 
 // add tag

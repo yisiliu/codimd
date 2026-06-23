@@ -6,12 +6,12 @@ const browse = require('../../lib/browse/index')
 
 describe('space services', function () {
   this.timeout(10000)
-  let u1, u2, teacher
+  let u1, u2, owner
   beforeEach(async function () {
     await resetDb()
     u1 = (await models.User.create({})).id
     u2 = (await models.User.create({})).id
-    teacher = (await models.User.create({ role: 'teacher' })).id
+    owner = (await models.User.create({ role: 'owner' })).id
   })
 
   it('any member creates a space; dedup is case-insensitive', async function () {
@@ -33,16 +33,16 @@ describe('space services', function () {
 
   it('rename/delete allowed for the creator', async function () {
     const s = await browse.createSpace(u1, 'Old')
-    await browse.renameSpace({ id: u1, role: 'student' }, s.id, 'New')
+    await browse.renameSpace({ id: u1, role: 'user' }, s.id, 'New')
     assert.strictEqual((await models.Space.findByPk(s.id)).name, 'New')
-    await browse.deleteSpace({ id: u1, role: 'student' }, s.id)
+    await browse.deleteSpace({ id: u1, role: 'user' }, s.id)
     assert.strictEqual(await models.Space.count(), 0)
   })
 
-  it('rename/delete allowed for a teacher, refused for an unrelated member', async function () {
+  it('rename/delete allowed for an owner, refused for an unrelated member', async function () {
     const s = await browse.createSpace(u1, 'Shared')
-    await assert.rejects(() => browse.deleteSpace({ id: u2, role: 'student' }, s.id), /forbidden/i)
-    await browse.renameSpace({ id: teacher, role: 'teacher' }, s.id, 'Renamed')
+    await assert.rejects(() => browse.deleteSpace({ id: u2, role: 'user' }, s.id), /forbidden/i)
+    await browse.renameSpace({ id: owner, role: 'owner' }, s.id, 'Renamed')
     assert.strictEqual((await models.Space.findByPk(s.id)).name, 'Renamed')
   })
 
@@ -50,7 +50,7 @@ describe('space services', function () {
     const s = await browse.createSpace(u1, 'X')
     const n = await models.Note.create({ ownerId: u1, content: 'z' })
     await models.NoteSpace.create({ noteId: n.id, spaceId: s.id })
-    await browse.deleteSpace({ id: u1, role: 'student' }, s.id)
+    await browse.deleteSpace({ id: u1, role: 'user' }, s.id)
     assert.strictEqual(await models.NoteSpace.count(), 0)
     assert.ok(await models.Note.findByPk(n.id))
   })
