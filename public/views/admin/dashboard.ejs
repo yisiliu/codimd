@@ -16,8 +16,16 @@
         .admin-panel .table > thead > tr > th { border-bottom: 1px solid #eee; color: #999; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
         .admin-panel td { vertical-align: middle !important; }
         .invite-link { font-size: 12px; word-break: break-all; }
-        .row-actions form { display: inline-block; margin: 0 2px 0 0; }
+        .row-actions form { display: inline-block; margin: 0 2px 2px 0; vertical-align: middle; }
         .reset-form { margin-top: 8px; max-width: 280px; }
+        @media (max-width: 768px) {
+            .admin-wrap { padding: 16px 10px 50px; }
+            .admin-head .brand { font-size: 18px; }
+            .admin-head .brand small { display: none; }
+            /* tables scroll horizontally instead of overflowing the viewport */
+            .admin-panel .table { min-width: 560px; }
+            .reset-form { max-width: 100%; }
+        }
     </style>
 </head>
 
@@ -60,6 +68,7 @@
 
         <div class="panel panel-default admin-panel">
             <div class="panel-heading"><i class="fa fa-link"></i> <%= __('Active invites') %> <span class="badge"><%= invites.length %></span></div>
+            <div class="table-responsive">
             <table class="table table-striped">
                 <thead>
                     <tr><th><%= __('Role') %></th><th><%= __('Uses') %></th><th><%= __('Expires') %></th><th><%= __('Link') %></th><th></th></tr>
@@ -84,10 +93,12 @@
                     <% }) %>
                 </tbody>
             </table>
+            </div>
         </div>
 
         <div class="panel panel-default admin-panel">
             <div class="panel-heading"><i class="fa fa-users"></i> <%= __('Members') %> <span class="badge"><%= users.length %></span></div>
+            <div class="table-responsive">
             <table class="table table-striped">
                 <thead>
                     <tr><th><%= __('E-Mail') %></th><th><%= __('Role') %></th><th><%= __('Status') %></th><th><%= __('Joined') %></th><th class="text-right"><%= __('Actions') %></th></tr>
@@ -138,6 +149,7 @@
                     <% }) %>
                 </tbody>
             </table>
+            </div>
         </div>
 
         <p class="text-center text-muted" style="margin-top: 8px;"><%- __('Powered by %s', '<a href="https://github.com/hackmdio/codimd">CodiMD</a>') %></p>

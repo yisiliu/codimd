@@ -69,6 +69,32 @@
         #members-list .member-actions .btn { margin-left: 4px; }
         .members-add { margin-top: 14px; }
         .members-add .form-control { max-width: 220px; }
+        .dash-note-link .text { overflow-wrap: anywhere; }
+        /* --- responsive: stack columns + note rows on small screens --- */
+        @media (max-width: 768px) {
+            .dash-wrap { padding: 16px 10px 50px; }
+            .dash-head { margin-bottom: 18px; }
+            .dash-head .brand { font-size: 18px; }
+            .dash-sidebar { flex: 1 1 100%; max-width: none; }
+            .dash-main { flex: 1 1 100%; }
+            .dash-note { flex-direction: column; align-items: stretch; gap: 8px; }
+            .dash-note-actions { flex-wrap: wrap; }
+            .dash-note-actions .dash-move,
+            .dash-note-actions .dash-space-add,
+            .dash-note-actions .dash-add-tag { flex: 1 1 130px; max-width: none; }
+            .dash-note-actions .dash-add-tag .input-group { width: 100%; }
+            .dash-toolbar .form-group { display: block; margin: 0 0 8px; }
+            .dash-toolbar .form-group .form-control { width: 100%; }
+            #browse-notes { display: block; }
+            .members-add .form-control { max-width: none; width: 100%; }
+            #members-list > li { flex-wrap: wrap; gap: 6px; }
+            .modal-dialog { margin: 10px; }
+        }
+        @media (max-width: 480px) {
+            .dash-head .brand small { display: none; }
+            .dash-views { display: flex; }
+            .dash-views .btn { flex: 1 1 50%; }
+        }
     </style>
 </head>
 
