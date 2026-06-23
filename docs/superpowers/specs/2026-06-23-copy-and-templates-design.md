@@ -36,11 +36,11 @@ Owner/viewer-guarded; mounted with the existing `/api/*`-only, above-`/:noteId`,
 
 | method + path | who | purpose |
 |---|---|---|
-| `POST /api/notes/:id/clone` | any member who may **view** the source | create a new note (`ownerId = me`, `content = source.content`, default permission); return `{ id: encodedNewId }`. Reject if source not viewable (403) or content over `documentMaxLength` (400). |
+| `POST /api/notes/:id/clone` | any member who may **view** the source | create a new note (`ownerId = me`, `content = source.content`, **`title = Note.parseNoteTitle(source.content)`**, default permission); return `{ id: encodedNewId }`. Reject if source not viewable (403) or content over `documentMaxLength` (400). |
 | `PUT /api/notes/:id/template` | note **owner** | body `{ template: true|false }` — toggle the flag |
-| `GET /api/templates` | any member | template notes (`template = true`) the viewer may see, each `{ id (encoded), text: title, owner }` |
+| `GET /api/templates` | any member | template notes (`template = true`) the viewer may see, each `{ id (encoded), text: title-or-derived, owner }` |
 
-Clone service (testable, no Express): `cloneNote(userId, sourceNoteId)` → loads the source, checks `viewableWhere`, `Note.create({ ownerId: userId, content: source.content })`, returns the new note. Owner check for the template toggle reuses the `ownedNote` helper pattern.
+Clone service (testable, no Express): `cloneNote(userId, sourceNoteId)` → loads the source, checks `viewableWhere`, `Note.create({ ownerId: userId, content: source.content, title: Note.parseNoteTitle(source.content) })`, returns the new note. **The explicit `title` is required:** the `beforeCreate` hook only derives a title when `content` is empty, and `getMyNoteList` returns the raw `title` column — without this the cloned note shows a **blank title** in the dashboard. `parseNoteTitle` already exists (`lib/models/note.js`). Owner check for the template toggle reuses the `ownedNote` helper pattern. `GET /api/templates` likewise falls back to `Note.parseNoteTitle(content)` when a template note's `title` column is empty.
 
 ## UI
 
@@ -54,7 +54,7 @@ All copy affordances require login; on a closed instance every member is logged 
 ## Behaviour & edge cases
 
 - **Clone permission:** you can copy a note you can view (non-private or yours); copying a private note you don't own → 403.
-- **Independent copy:** no folder/tags/spaces/pin/template/permission carried; no "copied from" link. Title follows from the copied content (CodiMD derives title from content), so the copy's title matches the source — acceptable (no "Copy of" prefix).
+- **Independent copy:** no folder/tags/spaces/pin/template/permission carried; no "copied from" link. The copy's `title` is set explicitly at clone time (`parseNoteTitle(source.content)`) so it is not blank; it **matches the source title** (content-only clone, no owner-stamp — user decision). Copies are disambiguated by the **owner name** the Browse view already shows, and each copy lives in its own owner's "My Notes". If grading later proves painful, owner-stamped titles can be added.
 - **Length guard:** mirror `newNote`'s `documentMaxLength` check.
 - **Template toggle is owner-only;** the template list shows only viewable, flagged notes (a private template shows only to its owner).
 - **Empty/new-from-template with zero templates:** the picker shows a gentle "No templates yet" and how to make one (flag a note as a template).
