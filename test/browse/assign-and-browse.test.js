@@ -37,7 +37,7 @@ describe('note↔space assignment + browse', function () {
     const myPriv = await models.Note.create({ ownerId: u1, title: 'MyPriv', content: '# MyPriv', permission: 'private' })
     for (const note of [mine, otherPub, otherPriv, myPriv]) await models.NoteSpace.create({ noteId: note.id, spaceId: s.id })
 
-    const list = await browse.listBrowse(u1, { space: s.id })
+    const list = await browse.listBrowse({ id: u1, role: 'user' }, { space: s.id })
     const titles = list.map(r => r.text).sort()
     assert.deepStrictEqual(titles, ['Mine', 'MyPriv', 'Pub']) // Secret (other's private) excluded
     assert.ok(list.every(r => typeof r.owner === 'string'))
