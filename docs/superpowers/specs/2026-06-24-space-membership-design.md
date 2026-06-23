@@ -14,7 +14,7 @@ Spaces become membership-gated. Each space has a **space steward** (`Space.creat
 |---|---|---|---|
 | See the space + its notes in Browse | ✅ (if member) | ✅ | ✅ (every space) |
 | **Invite/add** a member | ✅ any member | ✅ | ✅ (any space) |
-| **Remove another** member | ❌ never | ✅ | ✅ (any space) |
+| **Remove another** member | ❌ never | ✅ (but never the steward) | ✅ (any space, but never the steward) |
 | **Leave** (remove self) | ✅ | ❌ — must transfer first | ✅ if they're a plain member |
 | **Transfer** stewardship → an existing member | ❌ | ✅ | ✅ (any space) |
 | **Rename / delete** the space | ❌ | ✅ | ✅ (any space) |
@@ -30,9 +30,9 @@ Services: `viewableWhere(userId)`, `createSpace(userId,name)`, `listSpaces()` (c
 
 ## Data model (one migration)
 
-- **`SpaceMember`** (`lib/models/spacemember.js`): `spaceId`, `userId`, unique index `['spaceId','userId']`. `associate`: `belongsTo(Space)` + `belongsTo(User)`, both `constraints:false` (repo convention). No reverse `hasMany` that forward-references (the Slice-2 load-order lesson).
-- **`Space.createdById`** is the steward (already exists); transfer = updating it.
-- **Migration** `lib/migrations/<ts>-add-space-members.js`: create the `SpaceMembers` table, then **backfill** — insert a `SpaceMember` for each existing space's `createdById` (so current spaces aren't orphaned). `down` drops the table.
+- **`SpaceMember`** (`lib/models/spacemember.js`): `id` (UUID PK, `defaultValue: UUIDV4`), `spaceId`, `userId`, **`createdAt`/`updatedAt`** (timestamps on — needed for the migration's `bulkInsert`), unique index `['spaceId','userId']`. `associate`: `belongsTo(Space)` + `belongsTo(User)`, both `constraints:false` (repo convention). No reverse `hasMany` that forward-references (the Slice-2 load-order lesson). Mirror `notespace.js`'s shape exactly.
+- **`Space.createdById`** is the steward (already exists, UUID); transfer = updating it.
+- **Migration** `lib/migrations/<ts>-add-space-members.js`: create the `SpaceMembers` table, then **backfill** one member per existing space (= its `createdById`). **Portability (review F4):** do NOT reuse Slice-4a's `rawSelect` (it returns one scalar, not all rows) and do NOT hand-quote a raw multi-column SELECT (`createdById` folds/quotes differently per dialect — the shipped `20260618000001` migration already works around this). Instead read rows with the **model** (`require('../models').Space.findAll()` → `[{id, createdById}]`) and write with `queryInterface.bulkInsert('SpaceMembers', rows)`, where each row has an explicit `id: require('uuid').v4()` (UUIDV4 is a model marker, not an insert-time value) plus `createdAt`/`updatedAt`. `down` drops the table.
 
 ## Services (`lib/browse` extension)
 
@@ -42,14 +42,14 @@ Helpers: `isOwner(user)` = `user.role === 'owner'`; `isMember(userId, spaceId)` 
 - `createSpace(userId, name)` — create the space (`createdById=userId`) **and** a `SpaceMember(userId)`. (Creator is steward + member.)
 - `listMembers(user, spaceId)` — requires member-or-owner; returns `[{ id, name, isSteward }]`.
 - `addMember(user, spaceId, targetUserId)` — actor must be member-or-owner; target must be an existing institute user; idempotent on the unique index. ("Invite": any member.)
-- `removeMember(user, spaceId, targetUserId)`:
-  - **Leaving** (`targetUserId === user.id`): allowed if actor is a member and **not the steward** (`forbidden` if steward — "transfer stewardship first").
-  - **Removing another**: actor must be **steward-or-owner**; the target **must not be the steward** (`forbidden`).
+- `removeMember(user, spaceId, targetUserId)` — compare ids with `String(targetUserId) === String(user.id)` (repo convention — `req.params.userId` is a string; review F2):
+  - **Leaving** (self): allowed if actor is a member and **not the steward** (`forbidden` if steward — "transfer stewardship first").
+  - **Removing another**: actor must be **steward-or-owner**; the target **must not be the steward** (`forbidden`) — protects the exactly-one-steward invariant.
 - `transferSteward(user, spaceId, targetUserId)` — actor must be **steward-or-owner**; target must be a **current member**; set `Space.createdById = targetUserId`. (Old steward stays a member.)
 - `mutableSpace`/`renameSpace`/`deleteSpace` — unchanged (steward-or-owner). `deleteSpace` also removes the space's `SpaceMember` rows (app-level cleanup, alongside the existing `NoteSpace` cleanup).
-- `setNoteSpaces(ownerId, noteId, spaceIds)` — **filter `spaceIds` to spaces the owner is a member of** (you can only file a note into spaces you belong to); silently drop the rest.
+- `setNoteSpaces(ownerId, noteId, spaceIds)` — **filter `spaceIds` to spaces the owner is a member of** (you can only file a note into spaces you belong to). **Reconcile only within the owner's member-spaces (review F5):** the current impl `destroy`s *all* of the note's `NoteSpace` rows then re-inserts — that would wipe a legacy link to a space the owner isn't a member of. Instead scope the destroy to `{ noteId, spaceId: { [Op.in]: memberSpaceIds } }`, then insert the filtered desired set. This keeps non-member-space links intact (consistent with the edge-case below).
 - `listBrowse(userId, {space})` — restrict to spaces the viewer is a member of (or all, if owner), then the existing note-permission filter on top.
-- `listUsers()` — active institute users `[{ id, name }]` (name = `User.getProfile(u).name || email`), for the add-member picker.
+- `listUsers()` — active institute users `[{ id, name }]`, name = `(User.getProfile(u) || {}).name || u.email` (review F6 — `getProfile` returns `null` for a user with neither profile nor email; null-guard it). Filter on `User.active`.
 
 ## API (router additions in `lib/browse`)
 
@@ -89,6 +89,7 @@ Unchanged routes keep working; `GET /api/browse` and `PUT /api/notes/:id/spaces`
 - **HTTP harness:** the member endpoints with `buildApp({id,role,active})` — 401 anon; the matrix 403s; `GET /api/users` lists active users.
 - **Migration:** backfill inserts one `SpaceMember` per existing space (= its `createdById`).
 - Seed real `User`s (FK) + a steward; notes need content where titles are asserted.
+- **Update `test/browse/spaces.test.js:29`** for the new `listSpaces(user)` signature (review F1 — the only existing caller besides the router).
 
 ## Files (approximate)
 
