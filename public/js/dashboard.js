@@ -295,7 +295,7 @@ noteList.on('updated', () => {
 // --- browse view ---
 
 function canManageSpace (space) {
-  return String(space.createdById) === String(dashboardUser.id) || dashboardUser.role === 'teacher'
+  return String(space.createdById) === String(dashboardUser.id) || dashboardUser.role === 'owner'
 }
 
 function spaceName (spaceId) {
