@@ -471,6 +471,13 @@ $(document).ready(function () {
     e.stopPropagation()
   })
 })
+// make a copy
+$(document).on('click', '.ui-make-copy', function (e) {
+  e.preventDefault()
+  fetch(serverurl + '/api/notes/' + noteid + '/clone', { method: 'POST', credentials: 'same-origin' })
+    .then(function (r) { return r.json() })
+    .then(function (d) { if (d.id) window.open(serverurl + '/' + d.id, '_blank') })
+})
 // when page resize
 $(window).resize(function () {
   checkLayout()

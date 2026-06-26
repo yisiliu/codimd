@@ -48,7 +48,7 @@
                 &nbsp;<span class="text-uppercase ui-status-lastchange"></span>
                 <span class="ui-lastchange text-uppercase" data-createtime="<%- createtime %>" data-updatetime="<%- updatetime %>"></span>
             </span>
-            <span class="pull-right"><%- viewcount %> views <a href="#" class="ui-edit" title="Edit this note"><i class="fa fa-fw fa-pencil"></i></a></span>
+            <span class="pull-right"><%- viewcount %> views <a href="#" class="ui-make-copy" title="Make a copy"><i class="fa fa-fw fa-copy"></i></a> <a href="#" class="ui-edit" title="Edit this note"><i class="fa fa-fw fa-pencil"></i></a></span>
             <br>
             <% if(ownerprofile && owner !== lastchangeuser) { %>
             <span class="ui-owner">
@@ -109,3 +109,11 @@
 <%- include('build/pretty-pack-scripts') %>
 <% } %>
 <%- include('shared/ga') %>
+<script nonce="<%= cspNonce %>">
+  document.querySelector('.ui-make-copy').addEventListener('click', function () {
+    var seg = window.location.pathname.split('/').filter(Boolean).pop()
+    fetch('<%- serverURL %>/api/notes/' + seg + '/clone', { method: 'POST', credentials: 'same-origin' })
+      .then(function (r) { return r.json() })
+      .then(function (d) { if (d.id) window.open('<%- serverURL %>/' + d.id, '_blank') })
+  })
+</script>

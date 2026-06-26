@@ -112,6 +112,13 @@ The dashboard has a **My Notes ⇄ Browse** toggle:
 - **API** in `lib/browse` (same `/api/*`-only, per-route-auth, mounted-above-`/:noteId` discipline): `GET/POST /api/spaces` (any member), `PUT/DELETE /api/spaces/:id` (**creator or teacher**), `PUT /api/notes/:id/spaces` (**owner**), `GET /api/browse?space=`.
 - **Browse visibility** lists a categorized note for a viewer iff `(permission IS NULL OR permission != 'private') OR ownerId = me` — i.e. it never exposes a note the viewer couldn't already open. Search is client-side (`list.js`).
 
+### Copy & templates (teaching workflow)
+
+`lib/teach` adds the handout→copy loop on one clone mechanism (same `/api/*`-only, parse-encoded-id, mounted-above-`/:noteId` discipline):
+- `cloneNote(userId, sourceId)` copies a **viewable** note's content into a fresh note you own — content-only (no permission/folder/tags/spaces/pin/template carried), with the title derived via `Note.parseNoteTitle(content)` (**required** — `getMyNoteList` returns the raw `title` column, which `beforeCreate` only fills for empty content). Endpoint `POST /api/notes/:id/clone` → `{ id }`.
+- **Templates:** a `Note.template` boolean (owner-toggled via `PUT /api/notes/:id/template`); `GET /api/templates` lists viewable, flagged notes; the dashboard has a copy button per row (My Notes + Browse), a template star/badge, and a "New from template" picker. Copy buttons also live in the editor menu (`codimd/header.ejs` `.ui-make-copy` + `public/js/index.js`) and the published view (`pretty.ejs`).
+- **Read-only handouts** are just CodiMD's existing `protected`/`locked` permission — no new code; the copy button is the new affordance.
+
 ### Testing notes (org/dashboard/browse)
 
 - `test/helpers/db.js` (`{ models, resetDb }`) syncs models to sqlite `:memory:`. **`Notes.ownerId` is an enforced FK on sqlite** (its association carries `onDelete:'CASCADE'`), so any test creating a `Note` must seed a real `User` (`User.create({})` — no password, no scrypt). Notes whose title is asserted need non-empty `content` (the `beforeCreate` hook overwrites empty-content titles from `public/default.md`).
