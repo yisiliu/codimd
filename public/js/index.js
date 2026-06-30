@@ -3440,6 +3440,17 @@ function canModerateComment (c) {
   return c.mine || (personalInfo && personalInfo.userid && window.owner && personalInfo.userid === window.owner)
 }
 
+// render comment markdown through the same sanitized pipeline as the preview,
+// isolating md.meta so a comment can't clobber the note's frontmatter state
+function renderCommentMarkdown (text) {
+  var savedMeta = md.meta
+  md.meta = {}
+  var html
+  try { html = preventXSS(md.render(text || '')) } catch (e) { html = preventXSS(String(text || '')) }
+  md.meta = savedMeta
+  return html
+}
+
 function commentItemHtml (c) {
   var when = window.moment ? moment(c.createdAt).fromNow() : ''
   var actions = ''
@@ -3451,7 +3462,7 @@ function commentItemHtml (c) {
   return '<div class="comment-item' + (c.resolved ? ' resolved' : '') + '">' +
     '<div class="comment-meta"><strong>' + escapeCommentHtml(c.author && c.author.name) + '</strong> · ' + when +
     (c.resolved ? ' · <span class="label label-success">resolved</span>' : '') + '</div>' +
-    '<div class="comment-content">' + escapeCommentHtml(c.content) + '</div>' + actions + '</div>'
+    '<div class="comment-content">' + renderCommentMarkdown(c.content) + '</div>' + actions + '</div>'
 }
 
 function renderCommentPanel (line) {
