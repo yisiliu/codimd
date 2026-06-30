@@ -108,6 +108,13 @@ body.night{
 }
 .CodeMirror-gutter.comment-gutters {
     width: 16px;
+    cursor: pointer;
+}
+.CodeMirror-gutter.comment-gutters:hover {
+    background: rgba(240, 173, 78, .18);
+}
+.comment-add-current-wrap {
+    padding: 10px 14px 4px;
 }
 .comment-marker {
     cursor: pointer;

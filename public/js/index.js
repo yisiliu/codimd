@@ -3434,10 +3434,10 @@ function renderCommentPanel (line) {
   var $line = $('.comments-panel-line')
   if (line === 'all') {
     $line.text('')
-    var html = ''
+    var html = '<div class="comment-add-current-wrap"><button class="btn btn-default btn-sm comment-add-current"><i class="fa fa-plus"></i> Comment on current line</button></div>'
     var inDoc = commentsData.filter(function (c) { return !c.orphaned }).sort(function (a, b) { return a.anchoredLine - b.anchoredLine })
     var orphan = commentsData.filter(function (c) { return c.orphaned })
-    if (!commentsData.length) html += '<p class="comment-empty">No comments yet. Click a line gutter to add one.</p>'
+    if (!commentsData.length) html += '<p class="comment-empty">No comments yet. Click the comment gutter (just right of the line numbers) on a line, or use the button above.</p>'
     inDoc.forEach(function (c) {
       html += '<div class="comment-line-ref" data-line="' + c.anchoredLine + '">Line ' + (c.anchoredLine + 1) + '</div>' + commentItemHtml(c)
     })
@@ -3507,6 +3507,15 @@ $(document).on('click', '.comment-line-ref', function () {
   var line = parseInt($(this).data('line'), 10)
   editor.setCursor(line, 0)
   editor.scrollIntoView({ line: line, ch: 0 }, 100)
+})
+
+$(document).on('click', '.comment-add-current', function () {
+  openCommentPanel(editor.getCursor().line)
+})
+
+// click anywhere in the comment gutter (even an empty line) to add a comment there
+editor.on('gutterClick', function (cm, line, gutter) {
+  if (gutter === 'comment-gutters') openCommentPanel(line)
 })
 
 window.codimdComments = { load: loadComments }
