@@ -49,6 +49,14 @@
         <div id="ui-toc-affix" class="ui-affix-toc ui-toc-dropdown unselectable hidden-print" data-spy="affix" style="top:51px;display:none;"></div>
     </div>
 </div>
+<!-- inline comments side panel -->
+<div class="ui-comments-panel hidden-print">
+    <div class="comments-panel-header">
+        <span class="comments-panel-title"><i class="fa fa-comments-o"></i> <%= __('Comments') %> <small class="comments-panel-line text-muted"></small></span>
+        <button type="button" class="close ui-comments-close" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+    </div>
+    <div class="comments-panel-body"></div>
+</div>
 <!-- toc menu -->
 <div class="toc-menu" style="display: none;">
     <a class="expand-toggle expand-all" href="#"><%= __('Expand all') %></a>

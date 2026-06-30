@@ -886,6 +886,7 @@ export default class Editor {
       gutters: [
         'CodeMirror-linenumbers',
         'authorship-gutters',
+        'comment-gutters',
         'CodeMirror-foldgutter'
       ],
       extraKeys: this.defaultExtraKeys,
