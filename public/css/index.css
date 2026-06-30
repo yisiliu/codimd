@@ -170,6 +170,53 @@ body.night{
     top: 0;
     background: #fff;
 }
+.ui-comments-panel .close {
+    color: #333;
+    opacity: .6;
+    text-shadow: none;
+    font-size: 22px;
+    line-height: 1;
+    float: none;
+}
+.ui-comments-panel .close:hover {
+    opacity: 1;
+    color: #000;
+}
+/* dark comments panel when the editor is in night mode (so the white .close shows + it matches) */
+.night .ui-comments-panel {
+    background: #2d2d2d;
+    color: #ddd;
+    border-left-color: #444;
+}
+.night .comments-panel-header {
+    background: #2d2d2d;
+    border-bottom-color: #444;
+}
+.night .comment-item {
+    border-bottom-color: #3a3a3a;
+}
+.night .comment-item .comment-content,
+.night .comment-item .comment-content a {
+    color: #ddd;
+}
+.night .comment-item .comment-meta,
+.night .comment-empty {
+    color: #999;
+}
+.night .comment-add textarea {
+    background: #1f1f1f;
+    color: #ddd;
+    border-color: #444;
+}
+.night .comment-item .comment-content code,
+.night .comment-item .comment-content pre {
+    background: #1f1f1f;
+    color: #ddd;
+}
+.night .comment-item .comment-content blockquote {
+    border-left-color: #555;
+    color: #aaa;
+}
 .comment-item {
     padding: 8px 14px;
     border-bottom: 1px solid #f0f0f0;
