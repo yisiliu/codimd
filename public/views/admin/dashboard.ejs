@@ -3,42 +3,85 @@
 
 <head>
     <%- include('../index/head') %>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,500&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style nonce="<%= nonce %>">
-        body { background-color: #f7f7f9; color: #333; }
-        .admin-wrap { max-width: 1040px; margin: 0 auto; padding: 24px 15px 60px; }
-        .admin-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 24px; }
-        .admin-head .brand { font-size: 22px; font-weight: 600; }
-        .admin-head .brand .fa { margin-right: 6px; }
-        .admin-head .brand small { opacity: .55; font-weight: 400; }
-        .admin-panel { margin-bottom: 22px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
-        .admin-panel .panel-heading { font-weight: 600; }
-        .admin-panel .table { margin-bottom: 0; }
-        .admin-panel .table > thead > tr > th { border-bottom: 1px solid #eee; color: #999; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+        :root {
+            --paper: #f5f1e8; --paper-raised: #fffdf7; --ink: #221d17; --ink-soft: #5f564a; --ink-faint: #938876;
+            --rule: #e2dac9; --rule-strong: #cfc4b0; --accent: #a23a26; --accent-deep: #7f2c1c; --accent-tint: #f1e4dd;
+            --sage: #3d6a4d; --sage-tint: #e7efe7; --ochre: #946614; --tag: #33506f;
+        }
+        body { background-color: var(--paper); color: var(--ink); font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif; }
+        ::selection { background: var(--accent-tint); }
+        .admin-wrap { max-width: 1060px; margin: 0 auto; padding: 36px 24px 80px; }
+        .admin-head { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 0; }
+        .admin-head .brand { font-family: 'Fraunces', Georgia, serif; font-weight: 900; font-size: clamp(28px, 4.4vw, 44px); line-height: .92; letter-spacing: -.015em; color: var(--ink); }
+        .admin-head .brand .fa { color: var(--accent); margin-right: 4px; font-size: .78em; }
+        .admin-head .brand small { display: block; font-family: 'Fraunces', Georgia, serif; font-style: italic; font-weight: 500; font-size: .4em; color: var(--ink-soft); margin-top: 6px; }
+        .admin-head .head-tools { color: var(--ink-soft); }
+        .admin-head .head-tools .btn { color: var(--ink-soft); }
+        .masthead-rule { height: 3px; background: var(--accent); margin: 16px 0 30px; border: 0; }
+        .admin-panel { margin-bottom: 26px; background: var(--paper-raised); border: 1px solid var(--rule); border-radius: 3px; box-shadow: none; }
+        .admin-panel > .panel-heading { background: transparent; border: 0; border-bottom: 1px solid var(--rule); color: var(--ink-faint); font-weight: 600; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; padding: 13px 16px; }
+        .admin-panel > .panel-heading .fa { color: var(--accent); }
+        .admin-panel > .panel-heading .badge { background: var(--accent); }
+        .admin-panel .panel-body { padding: 16px; }
+        .admin-panel .table { margin-bottom: 0; color: var(--ink); }
+        .admin-panel .table > thead > tr > th { border-bottom: 1px solid var(--rule); color: var(--ink-faint); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; font-weight: 600; }
+        .admin-panel .table > tbody > tr > td { border-top-color: var(--rule); }
+        .admin-panel .table-striped > tbody > tr:nth-of-type(odd) { background: color-mix(in srgb, var(--accent-tint) 32%, transparent); }
         .admin-panel td { vertical-align: middle !important; }
-        .invite-link { font-size: 12px; word-break: break-all; }
+        .invite-link { font-size: 12px; word-break: break-all; color: var(--accent-deep); }
         .row-actions form { display: inline-block; margin: 0 2px 2px 0; vertical-align: middle; }
         .reset-form { margin-top: 8px; max-width: 280px; }
+        .btn-default { background: var(--paper-raised); color: var(--ink); border: 1px solid var(--rule-strong); border-radius: 3px; }
+        .btn-default:hover, .btn-default:focus { background: var(--accent-tint); color: var(--accent-deep); border-color: var(--accent); }
+        .btn-success { background: var(--sage); border-color: var(--sage); }
+        .btn-danger { background: var(--accent); border-color: var(--accent); }
+        .btn-warning { background: var(--ochre); border-color: var(--ochre); color: #fff; }
+        .form-control { background: var(--paper-raised); color: var(--ink); border: 1px solid var(--rule-strong); border-radius: 3px; box-shadow: none; }
+        .form-control:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-tint); }
+        .help-block { color: var(--ink-faint); }
+        a { color: var(--accent); } a:hover { color: var(--accent-deep); }
+        .label-danger { background: var(--accent); }
+        .label-info { background: var(--tag); }
+        .label-default { background: var(--ink-soft); }
+        .text-success { color: var(--sage) !important; }
+        .alert-success { background: var(--sage-tint); border-color: color-mix(in srgb, var(--sage) 30%, transparent); color: var(--sage); }
+        .alert-danger { background: var(--accent-tint); border-color: color-mix(in srgb, var(--accent) 30%, transparent); color: var(--accent-deep); }
+        @keyframes adRise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+        .admin-head, .admin-panel { animation: adRise .5s cubic-bezier(.22,.61,.36,1) both; }
+        .admin-panel:nth-of-type(2) { animation-delay: .06s; } .admin-panel:nth-of-type(3) { animation-delay: .12s; } .admin-panel:nth-of-type(4) { animation-delay: .18s; }
+        body.dash-night {
+            --paper: #1b1714; --paper-raised: #241f1a; --ink: #efe7da; --ink-soft: #b6ac9b; --ink-faint: #8a7f6d;
+            --rule: #352e26; --rule-strong: #473e33; --accent: #d9694e; --accent-deep: #c2553c; --accent-tint: #2c211b;
+            --sage: #7fb88f; --sage-tint: #1f2c23; --ochre: #d6a24e; --tag: #9db8d6;
+            background-color: var(--paper); color: var(--ink);
+        }
+        body.dash-night .btn-danger, body.dash-night .btn-warning { color: #1b1714; }
+        body.dash-night .close { color: var(--ink-soft); text-shadow: none; }
         @media (max-width: 768px) {
             .admin-wrap { padding: 16px 10px 50px; }
-            .admin-head .brand { font-size: 18px; }
             .admin-head .brand small { display: none; }
-            /* tables scroll horizontally instead of overflowing the viewport */
             .admin-panel .table { min-width: 560px; }
             .reset-form { max-width: 100%; }
         }
+        @media (prefers-reduced-motion: reduce) { *, .admin-head, .admin-panel { animation: none !important; transition: none !important; } }
     </style>
 </head>
 
 <body>
     <div class="admin-wrap">
         <div class="admin-head">
-            <span class="brand"><i class="fa fa-file-text"></i> CodiMD <small>· <%= __('Admin') %></small></span>
-            <span>
+            <span class="brand"><i class="fa fa-file-text"></i>CodiMD <small><%= __('Admin') %></small></span>
+            <span class="head-tools">
                 <i class="fa fa-user-circle-o"></i> <%= me.email %>&ensp;
                 <a href="<%- serverURL %>/" class="btn btn-sm btn-default"><i class="fa fa-home"></i> <%= __('Home') %></a>
                 <a href="<%- serverURL %>/logout" class="btn btn-sm btn-default"><i class="fa fa-sign-out"></i> <%= __('Sign Out') %></a>
             </span>
         </div>
+        <hr class="masthead-rule">
 
         <% errorMessages.forEach(function (m) { %>
         <div class="alert alert-danger"><i class="fa fa-exclamation-circle"></i> <%= m %></div>
@@ -156,6 +199,12 @@
     </div>
 
     <script nonce="<%= nonce %>">
+      // respect the shared dark-mode preference (set on the dashboard / editor)
+      try {
+        if (window.localStorage.getItem('nightMode') === 'true' || document.cookie.indexOf('nightMode=true') !== -1) {
+          document.body.classList.add('dash-night')
+        }
+      } catch (e) {}
       document.addEventListener('submit', function (e) {
         var msg = e.target.getAttribute('data-confirm')
         if (msg && !window.confirm(msg)) e.preventDefault()
