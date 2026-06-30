@@ -110,11 +110,24 @@ body.night{
     width: 16px;
     cursor: pointer;
 }
-.CodeMirror-gutter.comment-gutters:hover {
-    background: rgba(240, 173, 78, .18);
+.comment-add-marker {
+    width: 16px;
+    text-align: center;
+    cursor: pointer;
+    color: #ccc;
+    font-weight: bold;
+    line-height: inherit;
+}
+.comment-add-marker:hover {
+    color: #f0ad4e;
 }
 .comment-add-current-wrap {
     padding: 10px 14px 4px;
+}
+.comment-selection-btn {
+    position: fixed;
+    z-index: 2000;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
 }
 .comment-marker {
     cursor: pointer;

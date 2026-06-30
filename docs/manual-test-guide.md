@@ -143,9 +143,13 @@ You'll want **both** accounts here (owner shares, user discovers).
 
 Open any note in the editor (use **Both** mode so you can see the editor + preview).
 
-### 5.1 Add a line comment
-- [ ] **Do:** Click the **comment gutter** — the narrow strip just to the right of the line numbers (it highlights on hover) — on the line you want to comment on. The **Comments** panel slides in from the right with an "Add a comment…" box; type a comment and click **Post**. *(Alternatives: put the cursor on a line and open **Menu → Comments → "+ Comment on current line"**; or, once a line already has comments, click its 💬 gutter marker.)*
-- [ ] **Expect:** a 💬 marker appears in the gutter on that line (**red** = has unresolved comments); the comment shows in the panel with your name + time.
+### 5.1 Add a line comment (editor)
+- [ ] **Do:** In the editor, put the cursor on a line — a faint **+** appears in the comment gutter (just right of the line numbers) on *that line only*. Click it to open the **Comments** panel with an "Add a comment…" box; type and click **Post**. *(Alternatives: open **Menu → Comments → "+ Comment on current line"**; or click a line's 💬 marker once it has comments.)*
+- [ ] **Expect:** the **+** follows the cursor (only one line at a time); after posting, a 💬 marker appears on that line (**red** = unresolved), and the comment shows with your name + time.
+
+### 5.1b Add a comment by selecting text (view / Both mode)
+- [ ] **Do:** In the rendered note (View or Both mode), **select some text**. A small **💬 Comment** button pops up by the selection — click it.
+- [ ] **Expect:** the Comments panel opens for that text's source line, pre-filled with the selected text as a `>` quote; finish your comment and **Post**.
 
 ### 5.2 Persists + visible to other viewers
 - [ ] **Do:** Reload the note. Then open it as **another member who can view it** (e.g. share it / a space, sign in as the user).

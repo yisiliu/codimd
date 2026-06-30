@@ -3388,8 +3388,32 @@ function commentsForLine (line) {
   return commentsData.filter(function (c) { return c.anchoredLine === line })
 }
 
+var addMarkerLine = null // the line currently showing the faint "+" add affordance
+
+function lineHasComment (line) {
+  return commentsData.some(function (c) { return !c.orphaned && c.anchoredLine === line })
+}
+
+// Show a faint "+" in the comment gutter on ONLY the active line (if it has no comment yet),
+// so the add affordance follows the cursor instead of highlighting the whole gutter column.
+function updateAddMarker () {
+  var line = editor.getCursor().line
+  if (addMarkerLine === line) return
+  if (addMarkerLine !== null && !lineHasComment(addMarkerLine)) {
+    editor.setGutterMarker(addMarkerLine, 'comment-gutters', null)
+  }
+  addMarkerLine = null
+  if (!lineHasComment(line)) {
+    var m = $('<div class="comment-add-marker" title="Add a comment on this line">+</div>')
+    m.on('click', function () { openCommentPanel(line) })
+    editor.setGutterMarker(line, 'comment-gutters', m[0])
+    addMarkerLine = line
+  }
+}
+
 function renderCommentGutter () {
   editor.clearGutter('comment-gutters')
+  addMarkerLine = null // clearGutter wiped the "+" too
   var byLine = {}
   commentsData.forEach(function (c) {
     if (c.orphaned || c.anchoredLine === null) return
@@ -3405,6 +3429,7 @@ function renderCommentGutter () {
     marker.on('click', function () { openCommentPanel(line) })
     editor.setGutterMarker(line, 'comment-gutters', marker[0])
   })
+  updateAddMarker() // restore the active-line "+" after the clear
 }
 
 function escapeCommentHtml (s) {
@@ -3516,6 +3541,51 @@ $(document).on('click', '.comment-add-current', function () {
 // click anywhere in the comment gutter (even an empty line) to add a comment there
 editor.on('gutterClick', function (cm, line, gutter) {
   if (gutter === 'comment-gutters') openCommentPanel(line)
+})
+
+// keep the faint "+" add-affordance on the active line only
+editor.on('cursorActivity', function () { updateAddMarker() })
+
+// view mode: select text in the rendered note -> floating "Comment" button -> comment on its source line
+var $commentSelBtn = null
+function removeCommentSelBtn () {
+  if ($commentSelBtn) { $commentSelBtn.remove(); $commentSelBtn = null }
+}
+
+function sourceLineOfSelection (sel) {
+  var node = sel.anchorNode
+  if (!node) return null
+  var $el = $(node.nodeType === 3 ? node.parentNode : node).closest('[data-startline]')
+  if (!$el.length) return null
+  var line = parseInt($el.attr('data-startline'), 10) - 1
+  return line >= 0 ? line : null
+}
+
+$(document).on('mouseup', '#doc', function () {
+  setTimeout(function () {
+    removeCommentSelBtn()
+    var sel = window.getSelection()
+    var text = sel ? String(sel).trim() : ''
+    if (!text || !sel.rangeCount) return
+    var line = sourceLineOfSelection(sel)
+    if (line === null) return
+    var rect = sel.getRangeAt(0).getBoundingClientRect()
+    $commentSelBtn = $('<button class="btn btn-primary btn-xs comment-selection-btn"><i class="fa fa-comment"></i> Comment</button>')
+    $commentSelBtn.css({ top: (rect.bottom + 6) + 'px', left: Math.max(8, rect.left) + 'px' })
+    $commentSelBtn.on('mousedown', function (e) { e.preventDefault() }) // keep the text selection
+    $commentSelBtn.on('click', function () {
+      var quote = '> ' + text.replace(/\s+/g, ' ').slice(0, 200) + '\n\n'
+      openCommentPanel(line)
+      var $ta = $('.comment-add textarea')
+      if ($ta.length) { $ta.val(quote); $ta.focus() }
+      removeCommentSelBtn()
+    })
+    $('body').append($commentSelBtn)
+  }, 10)
+})
+
+$(document).on('mousedown', function (e) {
+  if ($commentSelBtn && !$(e.target).closest('.comment-selection-btn').length) removeCommentSelBtn()
 })
 
 window.codimdComments = { load: loadComments }
