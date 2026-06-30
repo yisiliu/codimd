@@ -95,6 +95,47 @@
             .dash-views { display: flex; }
             .dash-views .btn { flex: 1 1 50%; }
         }
+        /* --- dark mode (shares the editor's nightMode preference) --- */
+        body.dash-night { background-color: #1b1c1f; color: #d6d6d6; }
+        body.dash-night .dash-head .brand,
+        body.dash-night .dash-head .brand small { color: #e8e8e8; }
+        body.dash-night .panel,
+        body.dash-night .dash-panel { background-color: #25262b; border-color: #34353a; }
+        body.dash-night .panel-default > .panel-heading { background-color: #2c2d33; color: #e6e6e6; border-color: #34353a; }
+        body.dash-night .folder-list > li > a { color: #cfcfcf; }
+        body.dash-night .folder-list > li > a:hover,
+        body.dash-night .folder-list > li.active > a { background-color: #2f3038; border-left-color: #4a90d9; }
+        body.dash-night .dash-note { border-bottom-color: #34353a; }
+        body.dash-night .dash-note-link .text { color: #e6e6e6; }
+        body.dash-night .dash-note-link,
+        body.dash-night .dash-note-link:hover .text { color: #6db3f2; }
+        body.dash-night .dash-empty,
+        body.dash-night .text-muted,
+        body.dash-night .folder-count,
+        body.dash-night .dash-note-owner,
+        body.dash-night .dash-note-spaces .dash-spaces-label,
+        body.dash-night #template-list .template-owner { color: #8a8a8a; }
+        body.dash-night .form-control { background-color: #2c2d33; color: #e6e6e6; border-color: #44454a; }
+        body.dash-night .form-control::placeholder { color: #7a7a7a; }
+        body.dash-night .btn-default { background-color: #2c2d33; color: #d6d6d6; border-color: #44454a; }
+        body.dash-night .btn-default:hover,
+        body.dash-night .btn-default:focus { background-color: #363740; color: #fff; }
+        body.dash-night .dash-views .btn.active { background-color: #3a3b44; color: #fff; }
+        body.dash-night .input-group-addon { background-color: #2c2d33; border-color: #44454a; color: #ccc; }
+        body.dash-night .tag-chip { background: #2b3946; color: #9fc4e0; }
+        body.dash-night .space-chip { background: #1f3327; color: #8fd0a0; border-color: #2e4a38; }
+        body.dash-night .dash-note-tags .tag-chip,
+        body.dash-night .dash-note-spaces .space-chip { }
+        body.dash-night .modal-content { background-color: #25262b; color: #d6d6d6; }
+        body.dash-night .modal-header,
+        body.dash-night .modal-footer { border-color: #34353a; }
+        body.dash-night #template-list > li > a,
+        body.dash-night #members-list > li { color: #d6d6d6; border-bottom-color: #34353a; }
+        body.dash-night #template-list > li > a:hover { background-color: #2f3038; }
+        body.dash-night .close { color: #ddd; text-shadow: none; opacity: .7; }
+        body.dash-night a { color: #6db3f2; }
+        body.dash-night .alert-success { background-color: #1e3326; border-color: #2e4a38; color: #9fd8b0; }
+        body.dash-night .alert-danger { background-color: #3a2326; border-color: #5a363a; color: #e6a6ad; }
     </style>
 </head>
 
@@ -104,6 +145,7 @@
             <span class="brand"><i class="fa fa-file-text"></i> CodiMD <small>· <%= __('My Notes') %></small></span>
             <span>
                 <i class="fa fa-user-circle-o"></i>&ensp;
+                <button type="button" class="btn btn-sm btn-default dash-night-toggle" title="<%= __('Toggle dark mode') %>"><i class="fa fa-moon-o"></i></button>
                 <a href="<%- serverURL %>/" class="btn btn-sm btn-default"><i class="fa fa-home"></i> <%= __('Home') %></a>
                 <a href="<%- serverURL %>/logout" class="btn btn-sm btn-default"><i class="fa fa-sign-out"></i> <%= __('Sign Out') %></a>
             </span>
