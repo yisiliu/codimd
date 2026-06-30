@@ -139,6 +139,28 @@ You'll want **both** accounts here (owner shares, user discovers).
 
 ---
 
+## 5. Inline comments (Slice 3b)
+
+Open any note in the editor (use **Both** mode so you can see the editor + preview).
+
+### 5.1 Add a line comment
+- [ ] **Do:** Click into a line, then open **Menu → Comments** (or, after a comment exists, click the 💬 marker in the left gutter). In the **Comments** panel that slides in from the right, type a comment and click **Post**.
+- [ ] **Expect:** a 💬 marker appears in the gutter on that line (**red** = has unresolved comments); the comment shows in the panel with your name + time.
+
+### 5.2 Persists + visible to other viewers
+- [ ] **Do:** Reload the note. Then open it as **another member who can view it** (e.g. share it / a space, sign in as the user).
+- [ ] **Expect:** the marker + comment are still there after reload, and the other member sees them too (comments are visible to anyone who can view the note). They can reply by adding their own comment to the line.
+
+### 5.3 Resolve / delete + moderation
+- [ ] **Do:** Click **Resolve** on a comment; then **Delete**.
+- [ ] **Expect:** resolving greys it out (the gutter marker turns **orange** when nothing on the line is unresolved); deleting removes it (marker disappears when the line has none). **Resolve/Delete only show for the comment's author, the note's owner, or an institute owner** — a plain bystander viewing the note sees the comment but no moderation actions (and the server returns 403 if forced).
+
+### 5.4 All-comments view + drift
+- [ ] **Do:** Open **Menu → Comments** with no specific line → the panel lists **all** comments grouped by line (click **Line N** to jump there). Then edit the document — insert a few lines *above* a commented line.
+- [ ] **Expect:** the comment re-anchors to follow its line (matched by the line's text). If you change the commented line's text entirely, it appears under an **Orphaned (anchor lost)** section rather than vanishing.
+
+---
+
 ## Notes
 - The instance is invite-only — new accounts come only from `/admin` invites (or the `bin/manage_users` CLI), never self-registration.
 - "Handouts" are just CodiMD's existing **protected/locked** permission — the new part is the **Make a copy** button.
