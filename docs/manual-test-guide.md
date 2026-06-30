@@ -144,7 +144,7 @@ You'll want **both** accounts here (owner shares, user discovers).
 Open any note in the editor (use **Both** mode so you can see the editor + preview).
 
 ### 5.1 Add a line comment
-- [ ] **Do:** Click into a line, then open **Menu → Comments** (or, after a comment exists, click the 💬 marker in the left gutter). In the **Comments** panel that slides in from the right, type a comment and click **Post**.
+- [ ] **Do:** Click the **comment gutter** — the narrow strip just to the right of the line numbers (it highlights on hover) — on the line you want to comment on. The **Comments** panel slides in from the right with an "Add a comment…" box; type a comment and click **Post**. *(Alternatives: put the cursor on a line and open **Menu → Comments → "+ Comment on current line"**; or, once a line already has comments, click its 💬 gutter marker.)*
 - [ ] **Expect:** a 💬 marker appears in the gutter on that line (**red** = has unresolved comments); the comment shows in the panel with your name + time.
 
 ### 5.2 Persists + visible to other viewers
