@@ -28,7 +28,7 @@ A signed-in member can attach a **comment to a line** of any note they can view;
 
 - **`Comment`** (`lib/models/comment.js`, mirror the `notespace.js`/`spacemember.js` shape): `id` (UUID PK, UUIDV4), `noteId` (UUID), `authorId` (UUID), `line` (INTEGER, allowNull false), `anchorText` (TEXT — the line's text when the comment was made), `content` (TEXT, allowNull false), `resolved` (BOOLEAN default false), timestamps. Index on `noteId`. `associate`: `belongsTo(Note)` + `belongsTo(User)` (`constraints:false`). No reverse hasMany (load-order lesson).
 - **Migration** `lib/migrations/<ts>-add-comments.js`: `createTable('Comments', …)` (UUID id PK no defaultValue, matching the spaces migration) + `addIndex('Comments', ['noteId'])`. `down` drops it.
-- **Cleanup:** deleting a note removes its comments — add `Comment.destroy({ where: { noteId } })` to the note-deletion path (`cleanupNoteOrganization` in `lib/note`, which already clears NoteSpace/NoteTag).
+- **Cleanup:** deleting a note removes its comments — add `await Comment.destroy({ where: { noteId } })` to `cleanupNoteOrganization` (`lib/note/index.js:233`, already clears `NoteTag` + `NoteSpace`, called from `deleteNote` at line 253). Also add `Comment` to that file's model import (line 5).
 
 ## Services (`lib/comment/index.js`)
 
@@ -53,11 +53,11 @@ Per-route `requireAuth`; `handle()` maps `/not-found|forbidden/`→403. `:cid` i
 ## Editor UI (`public/js/index.js` + `public/js/lib/editor/index.js` + `codimd/header.ejs`)
 
 The heavy part — verify integration points live during planning.
-- **Gutter:** add a `comment` gutter to the CodeMirror `gutters` array; render a 💬 marker (with count) on each line that has comments via `setGutterMarker`. Clicking a marker (or a "comment on this line" affordance on the active line) opens the panel for that line.
+- **Gutter:** add a **distinctly-named** `comment-gutters` lane to the CodeMirror `gutters` array (existing lanes are `CodeMirror-linenumbers`, `authorship-gutters`, `CodeMirror-foldgutter` — review-confirmed; do NOT reuse `authorship-gutters`). Render a 💬 marker (with count) per commented line via `setGutterMarker(line, 'comment-gutters', …)`. Clicking a marker (or a "comment on this line" affordance on the active line) opens the panel for that line.
 - **Comment panel:** a right-side drawer / Bootstrap popover listing the line's comments (author, relative time, text, a **resolved** badge), a textarea + **Post**, and per-comment **Resolve**/**Delete** (shown when `mine` or the viewer owns the note / is institute owner — server re-checks regardless).
 - **Toolbar toggle:** a "Comments" button (in `codimd/header.ejs`, like the "Make a copy" item) to show/hide markers + open an **all-comments list** (including an **Orphaned** section for comments whose anchor was lost).
 - **Loading & anchoring:** on note load, `GET …/comments`; for each, resolve its line — if `editor.getLine(line) === anchorText` use `line`; else scan ±5 lines for `anchorText`; else mark **orphaned**. Re-fetch after post/resolve/delete (REST). Posting captures the current cursor line's number + text as `line`/`anchorText`.
-- Available only to signed-in members (closed instance); the editor passes `currentUser`/`noteid` already in scope.
+- Available only to signed-in members (closed instance). **Client identity (review):** `noteid` is in scope (imported in `index.js`); there is **no `currentUser` variable** — user identity is `personalInfo`/`window.owner`. The client doesn't need it: `listComments` returns a **`mine`** flag per comment for moderation affordances, and the server re-checks `canModerate` on every PUT/DELETE regardless.
 
 ## Behaviour & edge cases
 
