@@ -855,4 +855,23 @@ $('.search').on('keyup', () => { setTimeout(checkEmpty, 0) })
 // prevent empty link change hash
 $('a[href="#"]').click(function (e) { e.preventDefault() })
 
+// --- dark mode (interops with the editor's nightMode cookie + localStorage) ---
+function dashNightPref () {
+  try { if (window.localStorage.getItem('nightMode') === 'true') return true } catch (e) {}
+  return document.cookie.indexOf('nightMode=true') !== -1
+}
+function applyDashNight (on) {
+  $('body').toggleClass('dash-night', on)
+  $('.dash-night-toggle i').attr('class', on ? 'fa fa-sun-o' : 'fa fa-moon-o')
+}
+function setDashNight (on) {
+  try { window.localStorage.setItem('nightMode', on ? 'true' : 'false') } catch (e) {}
+  document.cookie = 'nightMode=' + (on ? 'true' : 'false') + ';path=/;max-age=31536000;samesite=lax'
+  applyDashNight(on)
+}
+applyDashNight(dashNightPref())
+$(document).on('click', '.dash-night-toggle', function () {
+  setDashNight(!$('body').hasClass('dash-night'))
+})
+
 load()
