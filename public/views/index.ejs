@@ -3,6 +3,43 @@
 
 <head>
     <%- include('index/head') %>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,900;1,9..144,500&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style nonce="<%= nonce %>">
+        :root {
+            --paper: #f5f1e8; --paper-raised: #fffdf7; --ink: #221d17; --ink-soft: #5f564a; --ink-faint: #938876;
+            --rule: #e2dac9; --rule-strong: #cfc4b0; --accent: #a23a26; --accent-deep: #7f2c1c; --accent-tint: #f1e4dd;
+        }
+        html, body, .site-wrapper, .site-wrapper-inner, .cover-container { background: var(--paper) !important; color: var(--ink); }
+        body { font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif; }
+        ::selection { background: var(--accent-tint); }
+        .masthead { border-bottom: 1px solid var(--rule); }
+        .masthead-nav > li > a { color: var(--ink-soft); }
+        .masthead-nav > li > a:hover, .masthead-nav > li > a:focus { background: transparent; color: var(--ink); }
+        .masthead-nav > li.active > a, .masthead-nav > li.active > a:hover { color: var(--accent); background: transparent; border-bottom: 2px solid var(--accent); }
+        .cover-heading { font-family: 'Fraunces', Georgia, serif; font-weight: 900; color: var(--ink) !important; font-size: clamp(54px, 11vw, 104px); letter-spacing: -.025em; line-height: .9; text-shadow: none; }
+        .cover-heading .fa { color: var(--accent); font-size: .62em; vertical-align: baseline; }
+        .lead { color: var(--ink-soft) !important; font-size: 19px; text-shadow: none; }
+        .cover .btn, .ui-signin .btn { text-shadow: none; }
+        .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; border-radius: 3px; text-shadow: none; }
+        .btn-primary:hover, .btn-primary:focus { background: var(--accent-deep); border-color: var(--accent-deep); color: #fff; }
+        .btn-success { background: var(--ink); border-color: var(--ink); color: var(--paper); border-radius: 3px; text-shadow: none; }
+        .btn-success:hover, .btn-success:focus { background: var(--accent); border-color: var(--accent); color: #fff; }
+        a { color: var(--accent); } a:hover { color: var(--accent-deep); }
+        /* sign-in modal -> editorial paper card */
+        .signin-modal .modal-content { background: var(--paper-raised); color: var(--ink); border: 1px solid var(--rule-strong); border-radius: 4px; box-shadow: 0 18px 56px rgba(34, 29, 23, .20); }
+        .signin-modal .modal-header { border-bottom: 1px solid var(--rule); }
+        .signin-modal .modal-title { font-family: 'Fraunces', Georgia, serif; font-weight: 600; color: var(--ink); }
+        .signin-modal .close { color: var(--ink-soft); text-shadow: none; opacity: .6; }
+        .signin-modal .close:hover { opacity: 1; color: var(--ink); }
+        .signin-modal .form-control { background: var(--paper); color: var(--ink); border: 1px solid var(--rule-strong); border-radius: 3px; height: 42px; box-shadow: none; }
+        .signin-modal .form-control:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-tint); }
+        .signin-modal .form-control::placeholder { color: var(--ink-faint); }
+        .signin-modal .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+        .signin-modal .btn-primary:hover { background: var(--accent-deep); border-color: var(--accent-deep); }
+        .signin-modal .btn-default { background: var(--paper); color: var(--ink); border: 1px solid var(--rule-strong); }
+    </style>
 </head>
 
 <body>
