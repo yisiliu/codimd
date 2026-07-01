@@ -45,6 +45,7 @@
         .dash-toolbar { margin-bottom: 6px; }
         .dash-toolbar .form-group { margin-right: 8px; }
         #dashboard-notes, #browse-notes { list-style: none; margin: 0; padding: 0; }
+        #dashboard-notes { display: block; }
         .dash-note { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px 6px; border-bottom: 1px solid var(--rule); transition: background .15s ease; }
         .dash-note:hover { background: color-mix(in srgb, var(--accent-tint) 45%, transparent); }
         .dash-note-main { flex: 1 1 auto; min-width: 0; }
@@ -52,9 +53,9 @@
         .dash-note-link .text { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 20px; line-height: 1.25; letter-spacing: -.011em; color: var(--ink); overflow-wrap: break-word; transition: color .15s ease; }
         .dash-note-link:hover .text { color: var(--accent); }
         .dash-note-link .fa { margin-right: 8px; color: var(--ink-faint); }
-        .dash-note-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 6px; row-gap: 6px; flex: 0 1 auto; max-width: 330px; opacity: .6; transition: opacity .15s ease; }
+        .dash-note-actions { display: flex; align-items: center; flex-wrap: nowrap; justify-content: flex-end; gap: 6px; flex: 0 0 auto; opacity: .6; transition: opacity .15s ease; }
         .dash-note:hover .dash-note-actions, .dash-note-actions:focus-within { opacity: 1; }
-        .dash-note-actions .dash-move, .dash-note-actions .dash-space-add { width: auto; max-width: 120px; }
+        .dash-note-actions .dash-move, .dash-note-actions .dash-space-add { width: 118px; flex: 0 0 auto; }
         .dash-note-actions .dash-add-tag .form-control { width: 96px; }
         /* meta + chips */
         .dash-note-owner { font-size: 11px; color: var(--ink-soft); margin-top: 4px; }
