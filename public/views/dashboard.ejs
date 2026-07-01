@@ -49,24 +49,27 @@
         .dash-note:hover { background: color-mix(in srgb, var(--accent-tint) 45%, transparent); }
         .dash-note-main { flex: 1 1 auto; min-width: 0; }
         .dash-note-link { text-decoration: none; }
-        .dash-note-link .text { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 22px; line-height: 1.2; letter-spacing: -.011em; color: var(--ink); overflow-wrap: anywhere; transition: color .15s ease; }
+        .dash-note-link .text { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 20px; line-height: 1.25; letter-spacing: -.011em; color: var(--ink); overflow-wrap: break-word; transition: color .15s ease; }
         .dash-note-link:hover .text { color: var(--accent); }
         .dash-note-link .fa { margin-right: 8px; color: var(--ink-faint); }
-        .dash-note-actions { display: flex; align-items: center; gap: 7px; flex: 0 0 auto; }
-        .dash-note-actions .dash-move, .dash-note-actions .dash-space-add { width: auto; max-width: 150px; }
+        .dash-note-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 6px; row-gap: 6px; flex: 0 1 auto; max-width: 330px; opacity: .6; transition: opacity .15s ease; }
+        .dash-note:hover .dash-note-actions, .dash-note-actions:focus-within { opacity: 1; }
+        .dash-note-actions .dash-move, .dash-note-actions .dash-space-add { width: auto; max-width: 120px; }
+        .dash-note-actions .dash-add-tag .form-control { width: 96px; }
         /* meta + chips */
         .dash-note-owner { font-size: 11px; color: var(--ink-soft); margin-top: 4px; }
         .dash-note-owner .fa { margin-right: 5px; color: var(--ink-faint); }
         .dash-note-tags, .dash-note-spaces { margin-top: 6px; }
-        .dash-note-tags .tag-chip { display: inline-block; background: var(--tag-tint); color: var(--tag); border-radius: 2px; font-size: 11px; font-weight: 500; padding: 1px 7px; margin: 2px 5px 0 0; }
-        .dash-note-tags .tag-chip .tag-x { cursor: pointer; margin-left: 5px; opacity: .55; }
+        .dash-note-tags .dash-tag-chip { display: inline-block; background: var(--tag-tint); color: var(--tag); border-radius: 2px; font-size: 11px; font-weight: 500; line-height: 1.5; text-transform: none; padding: 1px 7px; margin: 2px 5px 0 0; }
+        .dash-note-tags .dash-tag-chip .dash-tag-remove { cursor: pointer; margin-left: 5px; color: inherit; opacity: .55; text-decoration: none; }
+        .dash-note-tags .dash-tag-chip .dash-tag-remove:hover { opacity: 1; }
         .dash-note-spaces .dash-spaces-label { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); margin-right: 6px; }
         .dash-note-spaces .dash-spaces-label .fa { margin-right: 4px; }
         .dash-note-spaces .space-chip { display: inline-block; background: var(--sage-tint); color: var(--sage); border: 1px solid color-mix(in srgb, var(--sage) 25%, transparent); border-radius: 2px; font-size: 11px; font-weight: 500; padding: 1px 7px; margin: 2px 5px 0 0; }
         .dash-note-spaces .space-chip .space-x { cursor: pointer; margin-left: 5px; opacity: .55; }
-        .dash-shared-badge { display: inline-block; background: var(--sage); color: var(--paper-raised); border-radius: 2px; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; margin-left: 10px; vertical-align: middle; }
+        .dash-shared-badge { display: inline-block; background: var(--sage); color: var(--paper-raised); border-radius: 2px; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; margin-left: 9px; vertical-align: 2px; }
         .dash-shared-badge .fa { margin-right: 4px; }
-        .dash-template-badge { display: inline-block; background: var(--ochre); color: var(--paper-raised); border-radius: 2px; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; margin-left: 10px; vertical-align: middle; }
+        .dash-template-badge { display: inline-block; background: var(--ochre); color: var(--paper-raised); border-radius: 2px; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; margin-left: 9px; vertical-align: 2px; }
         .dash-template-badge .fa { margin-right: 4px; }
         .dash-note .dash-template.active { color: var(--ochre); }
         .dash-note .dash-pin.pinned { color: var(--accent); }
