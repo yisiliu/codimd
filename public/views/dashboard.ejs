@@ -12,7 +12,7 @@
             --rule: #e6e0d4; --rule-strong: #d2c9b9; --accent: #c2412a; --accent-deep: #a2331f; --accent-tint: #f5e6e0;
             --sage: #3d6a4d; --sage-tint: #e7efe7; --ochre: #946614; --tag: #33506f; --tag-tint: #e6ecf3;
         }
-        body { background-color: var(--paper); color: var(--ink); font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif; }
+        body { background-color: var(--paper); color: var(--ink); font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif; font-size: 15.5px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
         ::selection { background: var(--accent-tint); }
         .dash-wrap { max-width: 1120px; margin: 0 auto; padding: 36px 24px 80px; }
         /* masthead */
@@ -49,7 +49,7 @@
         .dash-note:hover { background: color-mix(in srgb, var(--accent-tint) 45%, transparent); }
         .dash-note-main { flex: 1 1 auto; min-width: 0; }
         .dash-note-link { text-decoration: none; }
-        .dash-note-link .text { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 19px; line-height: 1.25; color: var(--ink); overflow-wrap: anywhere; transition: color .15s ease; }
+        .dash-note-link .text { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 22px; line-height: 1.2; letter-spacing: -.011em; color: var(--ink); overflow-wrap: anywhere; transition: color .15s ease; }
         .dash-note-link:hover .text { color: var(--accent); }
         .dash-note-link .fa { margin-right: 8px; color: var(--ink-faint); }
         .dash-note-actions { display: flex; align-items: center; gap: 7px; flex: 0 0 auto; }
@@ -81,7 +81,7 @@
         .form-control::placeholder { color: var(--ink-faint); }
         /* view toggle (segmented) */
         .dash-views { margin-bottom: 24px; }
-        .dash-views.btn-group > .btn { background: var(--paper-raised); border-color: var(--rule-strong); color: var(--ink-soft); font-weight: 600; font-size: 13px; letter-spacing: .02em; padding: 7px 18px; }
+        .dash-views.btn-group > .btn { background: var(--paper-raised); border-color: var(--rule-strong); color: var(--ink-soft); font-weight: 600; font-size: 14px; letter-spacing: .02em; padding: 7px 18px; }
         .dash-views.btn-group > .btn.active, .dash-views.btn-group > .btn:active { background: var(--ink); color: var(--paper); border-color: var(--ink); box-shadow: none; }
         /* template / members lists */
         #template-list { list-style: none; margin: 0; padding: 0; }
