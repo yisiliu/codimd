@@ -18,6 +18,9 @@ let currentFolder = 'all' // 'all' | 'unfiled' | folderId
 let currentTag = '' // '' = all tags, else a user-tag
 let searchIds = null // null = no search; else a Set of encoded ids matched server-side (title/content/tags)
 let browseSearchIds = null // same, for the Browse view
+let currentSort = 'edited' // 'edited' | 'opened' | 'title' | 'created'
+let selectMode = false
+const selectedIds = new Set() // encoded ids selected for bulk actions
 
 // browse state
 const dashboardUser = (typeof window !== 'undefined' && window.dashboardUser) || { id: '', role: '' }
@@ -30,6 +33,7 @@ const options = {
   valueNames: ['text', 'timestamp', 'noteid'],
   item: `<li class="dash-note">
           <span class="noteid" style="display:none;"></span>
+          <input type="checkbox" class="dash-note-check" title="Select">
           <div class="dash-note-main">
             <a class="dash-note-link" target="_blank">
               <i class="fa fa-file-text-o"></i> <span class="text"></span>
@@ -114,7 +118,7 @@ function apiSend (method, path, body) {
 // --- load + render ---
 
 function load () {
-  Promise.all([
+  return Promise.all([
     apiGet('/api/notes/myNotes'),
     apiGet('/api/folders'),
     apiGet('/api/spaces')
@@ -123,6 +127,7 @@ function load () {
     folders = (foldersData && foldersData.folders) || []
     spaces = (spacesData && spacesData.spaces) || []
     renderFolders()
+    renderBulkSelects()
     renderNotes()
   })
 }
@@ -205,16 +210,27 @@ function renderNotes () {
       timestamp: note.lastchangeAt ? new Date(note.lastchangeAt).getTime() : 0
     })
   })
-  // pinned first, then newest
+  // pinned first, then the chosen sort within each group
   noteList.sort('', {
     sortFunction (a, b) {
       const na = noteByEncoded(a.values().noteid)
       const nb = noteByEncoded(b.values().noteid)
       if (na && nb && na.pinned !== nb.pinned) return na.pinned ? -1 : 1
-      return (b.values().timestamp || 0) - (a.values().timestamp || 0)
+      if (currentSort === 'title') return (na && na.text ? na.text : '').localeCompare(nb && nb.text ? nb.text : '', undefined, { sensitivity: 'base' })
+      return sortTime(nb) - sortTime(na)
     }
   })
   checkEmpty()
+  syncSelectionUI()
+}
+
+function sortTime (note) {
+  if (!note) return 0
+  let v
+  if (currentSort === 'opened') v = note.lastReadAt
+  else if (currentSort === 'created') v = note.createdAt
+  else v = note.lastchangeAt || note.createdAt // 'edited'
+  return v ? new Date(v).getTime() : 0
 }
 
 function noteByEncoded (encodedId) {
@@ -248,6 +264,50 @@ function refreshMoveSelects () {
   $('#dashboard-notes .dash-move').each(function () {
     const note = noteByEncoded($(this).closest('li').find('.noteid').text())
     if (note) $(this).html(moveSelectHtml(note))
+  })
+}
+
+// --- bulk select mode ---
+
+function renderBulkSelects () {
+  let folderHtml = '<option value="">Move to folder…</option><option value="__unfiled__">— Unfiled —</option>'
+  folders.forEach(f => { folderHtml += `<option value="${f.id}">${escapeHtml(f.name)}</option>` })
+  $('.dash-bulk-folder').html(folderHtml)
+  let spaceHtml = '<option value="">Add to space…</option>'
+  spaces.forEach(s => { spaceHtml += `<option value="${s.id}">${escapeHtml(s.name)}</option>` })
+  $('.dash-bulk-space').html(spaceHtml)
+}
+
+function syncSelectionUI () {
+  noteList.items.forEach(item => {
+    if (!item.visible()) return
+    const $el = $(item.elm)
+    const checked = selectedIds.has(item.values().noteid)
+    $el.find('.dash-note-check').prop('checked', checked)
+    $el.toggleClass('dash-checked', checked)
+  })
+  $('#dashboard-bulk-count').text(selectedIds.size + ' selected')
+  $('#dashboard-bulk-bar').toggle(selectMode)
+  const visibleIds = noteList.items.filter(i => i.visible()).map(i => i.values().noteid)
+  $('#dashboard-select-all').prop('checked', visibleIds.length > 0 && visibleIds.every(id => selectedIds.has(id)))
+}
+
+function setSelectMode (on) {
+  selectMode = on
+  $('#dashboard-notes').toggleClass('selecting', on)
+  $('#dash-select-toggle').toggleClass('active', on)
+  if (!on) selectedIds.clear()
+  syncSelectionUI()
+}
+
+function runBulk (action, value) {
+  const ids = Array.from(selectedIds)
+  if (!ids.length) return Promise.resolve()
+  return apiSend('POST', '/api/notes/bulk', { ids, action, value }).then(({ ok }) => {
+    if (ok) {
+      selectedIds.clear()
+      return load()
+    }
   })
 }
 
@@ -354,6 +414,69 @@ noteList.on('updated', () => {
     // last edit / last read
     renderNoteTime($el, note)
   })
+  syncSelectionUI()
+})
+
+// --- sort + bulk select ---
+
+$('#dashboard-sort').on('change', function () {
+  currentSort = $(this).val()
+  renderNotes()
+})
+
+$('#dash-select-toggle').on('click', function () { setSelectMode(!selectMode) })
+
+// in select mode, clicking a row (anywhere, incl. its checkbox/link) toggles it
+$('#dashboard-notes').on('click', '.dash-note', function (e) {
+  if (!selectMode) return
+  if ($(e.target).closest('a').length) e.preventDefault()
+  const id = $(this).find('.noteid').text()
+  if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id)
+  syncSelectionUI()
+})
+
+$('#dashboard-select-all').on('change', function () {
+  const on = $(this).prop('checked')
+  noteList.items.filter(i => i.visible()).forEach(i => {
+    const id = i.values().noteid
+    if (on) selectedIds.add(id); else selectedIds.delete(id)
+  })
+  syncSelectionUI()
+})
+
+$('#dashboard-bulk-bar').on('change', '.dash-bulk-folder', function () {
+  const v = $(this).val()
+  if (v === '') return
+  runBulk('folder', v === '__unfiled__' ? null : v)
+})
+
+$('#dashboard-bulk-bar').on('change', '.dash-bulk-space', function () {
+  const v = $(this).val()
+  if (!v) return
+  runBulk('space', v)
+})
+
+$('#dashboard-bulk-bar').on('submit', '.dash-bulk-tag', function (e) {
+  e.preventDefault()
+  const tag = $(this).find('.dash-bulk-tag-input').val().trim().toLowerCase()
+  if (!tag) return
+  runBulk('tag', tag)
+})
+
+$('#dashboard-bulk-bar').on('click', '.dash-bulk-pin', function () {
+  runBulk('pin', $(this).data('pin') === 1)
+})
+
+$('#dashboard-bulk-bar').on('click', '.dash-bulk-delete', function () {
+  const n = selectedIds.size
+  if (!n) return
+  // eslint-disable-next-line no-alert
+  if (!window.confirm(`Delete ${n} note${n > 1 ? 's' : ''}? This cannot be undone.`)) return
+  runBulk('delete', null).then(() => setSelectMode(false))
+})
+
+$('#dashboard-bulk-bar').on('click', '.dash-bulk-clear', function () {
+  setSelectMode(false)
 })
 
 // --- browse view ---

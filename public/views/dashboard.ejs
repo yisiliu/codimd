@@ -67,6 +67,21 @@
         .dash-note { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px 6px; border-bottom: 1px solid var(--rule); transition: background .15s ease; }
         .dash-note:hover { background: color-mix(in srgb, var(--accent-tint) 45%, transparent); }
         .dash-note-main { flex: 1 1 auto; min-width: 0; }
+        /* select mode: per-row checkboxes + bulk bar */
+        .dash-note-check { display: none; }
+        #dashboard-notes.selecting .dash-note-check { display: inline-block; flex: 0 0 auto; width: 15px; height: 15px; margin: 0 2px 0 0; cursor: pointer; accent-color: var(--accent); }
+        #dashboard-notes.selecting .dash-note-actions { display: none; }
+        #dashboard-notes.selecting .dash-note-time { opacity: .6; }
+        #dashboard-notes.selecting .dash-note { cursor: pointer; }
+        #dashboard-notes.selecting .dash-note.dash-checked { background: color-mix(in srgb, var(--accent-tint) 60%, transparent); }
+        #dash-select-toggle.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+        .dash-bulk-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; padding: 10px 12px; background: var(--accent-tint); border: 1px solid var(--rule-strong); border-radius: 4px; }
+        .dash-bulk-all { margin: 0; font-weight: 600; font-size: 13px; color: var(--ink); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+        .dash-bulk-all input { accent-color: var(--accent); }
+        .dash-bulk-bar .dash-bulk-folder, .dash-bulk-bar .dash-bulk-space { width: auto; max-width: 150px; }
+        .dash-bulk-bar .dash-bulk-tag { margin: 0; }
+        .dash-bulk-bar .dash-bulk-tag-input { width: 100px; }
+        .dash-bulk-bar .dash-bulk-clear { color: var(--ink-soft); margin-left: auto; }
         .dash-note-link { text-decoration: none; }
         .dash-note-link .text { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 20px; line-height: 1.25; letter-spacing: -.011em; color: var(--ink); overflow-wrap: break-word; transition: color .15s ease; }
         .dash-note-link:hover .text { color: var(--accent); }
@@ -283,11 +298,34 @@
                             <div class="form-group">
                                 <input class="dash-search form-control" placeholder="<%= __('Search notes & content...') %>">
                             </div>
-                            <a href="#" class="sort btn btn-default" data-sort="text" title="<%= __('Sort by title') %>"><%= __('Title') %></a>
-                            <a href="#" class="sort btn btn-default" data-sort="timestamp" title="<%= __('Sort by time') %>"><%= __('Time') %></a>
+                            <div class="form-group">
+                                <select class="form-control" id="dashboard-sort" title="<%= __('Sort') %>">
+                                    <option value="edited"><%= __('Last edited') %></option>
+                                    <option value="opened"><%= __('Last opened') %></option>
+                                    <option value="title"><%= __('Title A–Z') %></option>
+                                    <option value="created"><%= __('Recently created') %></option>
+                                </select>
+                            </div>
+                            <button type="button" id="dash-select-toggle" class="btn btn-default" title="<%= __('Select notes') %>"><i class="fa fa-check-square-o"></i> <%= __('Select') %></button>
                             <a href="<%- serverURL %>/new" class="btn btn-primary pull-right"><i class="fa fa-plus"></i> <%= __('New note') %></a>
                             <button type="button" id="dash-new-from-template" class="btn btn-default pull-right" style="margin-right: 6px;"><i class="fa fa-star"></i> <%= __('New from template') %></button>
                         </form>
+
+                        <div class="dash-bulk-bar" id="dashboard-bulk-bar" style="display: none;">
+                            <label class="dash-bulk-all"><input type="checkbox" id="dashboard-select-all"> <span id="dashboard-bulk-count">0 selected</span></label>
+                            <select class="form-control input-sm dash-bulk-folder" title="<%= __('Move to folder') %>"></select>
+                            <select class="form-control input-sm dash-bulk-space" title="<%= __('Add to space') %>"></select>
+                            <form class="dash-bulk-tag form-inline">
+                                <div class="input-group input-group-sm">
+                                    <input type="text" class="form-control dash-bulk-tag-input" placeholder="<%= __('Add tag') %>">
+                                    <span class="input-group-btn"><button type="submit" class="btn btn-default"><i class="fa fa-plus"></i></button></span>
+                                </div>
+                            </form>
+                            <button type="button" class="btn btn-xs btn-default dash-bulk-pin" data-pin="1" title="<%= __('Pin') %>"><i class="fa fa-thumb-tack"></i></button>
+                            <button type="button" class="btn btn-xs btn-default dash-bulk-pin" data-pin="0" title="<%= __('Unpin') %>"><i class="fa fa-thumb-tack fa-rotate-90"></i></button>
+                            <button type="button" class="btn btn-xs btn-danger dash-bulk-delete"><i class="fa fa-trash"></i> <%= __('Delete') %></button>
+                            <button type="button" class="btn btn-xs btn-link dash-bulk-clear"><%= __('Clear') %></button>
+                        </div>
 
                         <div class="dash-empty" id="dashboard-empty" style="display: none;">
                             <div><i class="fa fa-file-o"></i></div>
