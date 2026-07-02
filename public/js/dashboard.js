@@ -16,6 +16,8 @@ let folders = []
 let spaces = []
 let currentFolder = 'all' // 'all' | 'unfiled' | folderId
 let currentTag = '' // '' = all tags, else a user-tag
+let searchIds = null // null = no search; else a Set of encoded ids matched server-side (title/content/tags)
+let browseSearchIds = null // same, for the Browse view
 
 // browse state
 const dashboardUser = (typeof window !== 'undefined' && window.dashboardUser) || { id: '', role: '' }
@@ -133,6 +135,7 @@ function visibleNotes () {
   if (currentFolder === 'unfiled') list = list.filter(n => !n.folderId)
   else if (currentFolder !== 'all') list = list.filter(n => String(n.folderId) === String(currentFolder))
   if (currentTag) list = list.filter(n => (n.userTags || []).indexOf(currentTag) >= 0)
+  if (searchIds) list = list.filter(n => searchIds.has(n.id))
   return list
 }
 
@@ -386,7 +389,8 @@ function renderBrowseSpaces () {
 
 function renderBrowseNotes () {
   browseList.clear()
-  browseNotes.forEach(note => {
+  const list = browseSearchIds ? browseNotes.filter(n => browseSearchIds.has(n.id)) : browseNotes
+  list.forEach(note => {
     browseList.add({
       noteid: note.id,
       text: note.text || 'Untitled',
@@ -509,7 +513,18 @@ $('#browse-spaces').on('click', '.dash-delete-space', function (e) {
 })
 
 // browse search keeps the empty-state in sync
-$('#browse-list .search').on('keyup', () => { setTimeout(checkBrowseEmpty, 0) })
+let browseSearchTimer = null
+$('#browse-list .dash-search').on('input', function () {
+  const q = $(this).val().trim()
+  clearTimeout(browseSearchTimer)
+  browseSearchTimer = setTimeout(() => {
+    if (!q) { browseSearchIds = null; renderBrowseNotes(); return }
+    const sp = currentSpace === 'all' ? '' : `&space=${encodeURIComponent(currentSpace)}`
+    apiGet(`/api/browse/search?q=${encodeURIComponent(q)}${sp}`)
+      .then(data => { browseSearchIds = new Set((data && data.ids) || []); renderBrowseNotes() })
+      .catch(() => { browseSearchIds = new Set(); renderBrowseNotes() })
+  }, 250)
+})
 
 // --- actions ---
 
@@ -884,7 +899,17 @@ $('#dashboard-notes').on('click', '.space-x', function (e) {
 })
 
 // search keeps the empty-state in sync
-$('.search').on('keyup', () => { setTimeout(checkEmpty, 0) })
+let searchTimer = null
+$('#dashboard-list .dash-search').on('input', function () {
+  const q = $(this).val().trim()
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    if (!q) { searchIds = null; renderNotes(); return }
+    apiGet(`/api/notes/search?q=${encodeURIComponent(q)}`)
+      .then(data => { searchIds = new Set((data && data.ids) || []); renderNotes() })
+      .catch(() => { searchIds = new Set(); renderNotes() })
+  }, 250)
+})
 
 // prevent empty link change hash
 $('a[href="#"]').click(function (e) { e.preventDefault() })
