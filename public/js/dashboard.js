@@ -44,9 +44,9 @@ const options = {
             <div class="dropdown dash-menu">
               <button type="button" class="btn btn-xs btn-default dash-menu-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Organize"><i class="fa fa-ellipsis-h"></i></button>
               <div class="dropdown-menu dropdown-menu-right dash-menu-panel">
+                <div class="dash-menu-section">Organize<span class="dash-menu-hint"> · only you</span></div>
                 <div class="dash-menu-row"><span class="dash-menu-label">Folder</span><select class="form-control input-sm dash-move"></select></div>
-                <div class="dash-menu-row"><span class="dash-menu-label">Space</span><select class="form-control input-sm dash-space-add" title="Add to shared space"></select></div>
-                <div class="dash-menu-row"><span class="dash-menu-label">Tag</span>
+                <div class="dash-menu-row"><span class="dash-menu-label">Tags</span>
                   <form class="dash-add-tag form-inline">
                     <div class="input-group input-group-sm">
                       <input type="text" class="form-control dash-tag-input" placeholder="Add tag">
@@ -54,6 +54,10 @@ const options = {
                     </div>
                   </form>
                 </div>
+                <div class="dash-menu-divider"></div>
+                <div class="dash-menu-section"><i class="fa fa-share-alt"></i>Share<span class="dash-menu-hint"> · visible to members</span></div>
+                <div class="dash-menu-row"><span class="dash-menu-label">Space</span><select class="form-control input-sm dash-space-add" title="Add to shared space"></select></div>
+                <div class="dash-menu-divider"></div>
                 <button type="button" class="btn btn-xs btn-default dash-template dash-menu-template" title="Toggle template"><i class="fa fa-star-o"></i> Template</button>
               </div>
             </div>
