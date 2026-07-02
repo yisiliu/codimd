@@ -78,9 +78,9 @@ const browseOptions = {
             <a class="dash-note-link" target="_blank">
               <i class="fa fa-file-text-o"></i> <span class="text"></span>
             </a>
+            <span class="dash-note-owner"></span>
+            <span class="dash-note-spaces"></span>
             <span class="timestamp" style="display:none;"></span>
-            <div class="dash-note-owner"></div>
-            <div class="dash-note-spaces"></div>
           </div>
           <div class="dash-note-actions">
             <button type="button" class="btn btn-xs btn-default dash-copy" title="Make a copy"><i class="fa fa-copy"></i></button>
