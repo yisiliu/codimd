@@ -53,13 +53,30 @@
         .dash-note-link .text { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 20px; line-height: 1.25; letter-spacing: -.011em; color: var(--ink); overflow-wrap: break-word; transition: color .15s ease; }
         .dash-note-link:hover .text { color: var(--accent); }
         .dash-note-link .fa { margin-right: 8px; color: var(--ink-faint); }
-        .dash-note-actions { display: flex; align-items: center; flex-wrap: nowrap; justify-content: flex-end; gap: 6px; flex: 0 0 auto; opacity: .6; transition: opacity .15s ease; }
-        .dash-note:hover .dash-note-actions, .dash-note-actions:focus-within { opacity: 1; }
-        /* My Notes: two-row note — content on top, full-width controls strip below (the 6 controls won't fit beside the title at laptop widths) */
-        #dashboard-notes .dash-note { flex-direction: column; align-items: stretch; gap: 9px; padding: 15px 6px 17px; text-align: left; }
-        #dashboard-notes .dash-note-actions { flex-wrap: wrap; justify-content: flex-start; opacity: .72; }
-        .dash-note-actions .dash-move, .dash-note-actions .dash-space-add { width: 118px; flex: 0 0 auto; }
-        .dash-note-actions .dash-add-tag .form-control { width: 96px; }
+        .dash-note-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+        /* My Notes: compact one-line rows; folder/space/tag/template live behind a hover ⋯ menu, keeping the list scannable */
+        #dashboard-notes .dash-note { padding: 10px 8px; gap: 12px; text-align: left; }
+        #dashboard-notes .dash-note-main { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; flex: 1 1 auto; }
+        #dashboard-notes .dash-note-link { min-width: 0; flex: 0 1 auto; overflow: hidden; white-space: nowrap; }
+        #dashboard-notes .dash-note-link .text { font-size: 17px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; max-width: 100%; vertical-align: bottom; }
+        #dashboard-notes .dash-shared-badge, #dashboard-notes .dash-template-badge { flex: 0 0 auto; margin-left: 0; }
+        #dashboard-notes .dash-note-tags, #dashboard-notes .dash-note-spaces { display: inline-flex; align-items: center; gap: 4px; margin-top: 0; flex: 0 1 auto; min-width: 0; overflow: hidden; }
+        #dashboard-notes .dash-note-tags { margin-left: 2px; }
+        #dashboard-notes .dash-note-tags:empty, #dashboard-notes .dash-note-spaces:empty { display: none; }
+        #dashboard-notes .dash-note-spaces .dash-spaces-label { display: none; }
+        #dashboard-notes .dash-note-actions { opacity: 0; transition: opacity .12s ease; }
+        #dashboard-notes .dash-note:hover .dash-note-actions, #dashboard-notes .dash-note-actions:focus-within { opacity: 1; }
+        @media (hover: none) { #dashboard-notes .dash-note-actions { opacity: 1; } }
+        #dashboard-notes .dash-note-actions > .btn, #dashboard-notes .dash-menu-toggle { color: var(--ink-soft); }
+        /* ⋯ organize menu */
+        .dash-menu { display: inline-block; }
+        .dash-menu-panel { min-width: 236px; padding: 11px 12px 9px; background: var(--paper-raised); border: 1px solid var(--rule-strong); border-radius: 4px; box-shadow: 0 12px 34px rgba(34, 29, 23, .16); }
+        .dash-menu-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .dash-menu-label { flex: 0 0 42px; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); }
+        .dash-menu-row .form-control { width: auto; flex: 1 1 auto; }
+        .dash-menu-row .input-group { width: 100%; }
+        .dash-menu-template { display: block; width: 100%; text-align: left; margin-top: 2px; }
+        .dash-menu-template .fa { margin-right: 5px; }
         /* meta + chips */
         .dash-note-owner { font-size: 11px; color: var(--ink-soft); margin-top: 4px; }
         .dash-note-owner .fa { margin-right: 5px; color: var(--ink-faint); }

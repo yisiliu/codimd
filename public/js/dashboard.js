@@ -35,21 +35,28 @@ const options = {
             <span class="dash-shared-badge" style="display:none;"><i class="fa fa-share-alt"></i>shared</span>
             <span class="dash-template-badge" style="display:none;"><i class="fa fa-star"></i>template</span>
             <span class="timestamp" style="display:none;"></span>
-            <div class="dash-note-tags"></div>
-            <div class="dash-note-spaces"></div>
+            <span class="dash-note-tags"></span>
+            <span class="dash-note-spaces"></span>
           </div>
           <div class="dash-note-actions">
             <button type="button" class="btn btn-xs btn-default dash-pin" title="Pin"><i class="fa fa-thumb-tack"></i></button>
-            <button type="button" class="btn btn-xs btn-default dash-template" title="Toggle template"><i class="fa fa-star-o"></i></button>
             <button type="button" class="btn btn-xs btn-default dash-copy" title="Make a copy"><i class="fa fa-copy"></i></button>
-            <select class="form-control input-sm dash-move"></select>
-            <select class="form-control input-sm dash-space-add" title="Add to shared space"></select>
-            <form class="dash-add-tag form-inline">
-              <div class="input-group input-group-sm">
-                <input type="text" class="form-control dash-tag-input" placeholder="Add tag">
-                <span class="input-group-btn"><button type="submit" class="btn btn-default" title="Add tag"><i class="fa fa-plus"></i></button></span>
+            <div class="dropdown dash-menu">
+              <button type="button" class="btn btn-xs btn-default dash-menu-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Organize"><i class="fa fa-ellipsis-h"></i></button>
+              <div class="dropdown-menu dropdown-menu-right dash-menu-panel">
+                <div class="dash-menu-row"><span class="dash-menu-label">Folder</span><select class="form-control input-sm dash-move"></select></div>
+                <div class="dash-menu-row"><span class="dash-menu-label">Space</span><select class="form-control input-sm dash-space-add" title="Add to shared space"></select></div>
+                <div class="dash-menu-row"><span class="dash-menu-label">Tag</span>
+                  <form class="dash-add-tag form-inline">
+                    <div class="input-group input-group-sm">
+                      <input type="text" class="form-control dash-tag-input" placeholder="Add tag">
+                      <span class="input-group-btn"><button type="submit" class="btn btn-default" title="Add tag"><i class="fa fa-plus"></i></button></span>
+                    </div>
+                  </form>
+                </div>
+                <button type="button" class="btn btn-xs btn-default dash-template dash-menu-template" title="Toggle template"><i class="fa fa-star-o"></i> Template</button>
               </div>
-            </form>
+            </div>
           </div>
         </li>`,
   page: 18,
@@ -534,6 +541,11 @@ $('#dashboard-folders').on('click', '.dash-delete-folder', function (e) {
       load()
     }
   })
+})
+
+// keep the organize dropdown open while interacting with its selects/inputs
+$('#dashboard-notes').on('click', '.dash-menu-panel', function (e) {
+  e.stopPropagation()
 })
 
 // move note to folder
