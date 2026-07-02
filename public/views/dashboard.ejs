@@ -55,6 +55,9 @@
         .dash-note-link .fa { margin-right: 8px; color: var(--ink-faint); }
         .dash-note-actions { display: flex; align-items: center; flex-wrap: nowrap; justify-content: flex-end; gap: 6px; flex: 0 0 auto; opacity: .6; transition: opacity .15s ease; }
         .dash-note:hover .dash-note-actions, .dash-note-actions:focus-within { opacity: 1; }
+        /* My Notes: two-row note — content on top, full-width controls strip below (the 6 controls won't fit beside the title at laptop widths) */
+        #dashboard-notes .dash-note { flex-direction: column; align-items: stretch; gap: 9px; padding: 15px 6px 17px; text-align: left; }
+        #dashboard-notes .dash-note-actions { flex-wrap: wrap; justify-content: flex-start; opacity: .72; }
         .dash-note-actions .dash-move, .dash-note-actions .dash-space-add { width: 118px; flex: 0 0 auto; }
         .dash-note-actions .dash-add-tag .form-control { width: 96px; }
         /* meta + chips */
