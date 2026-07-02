@@ -1,0 +1,2 @@
+--require ./test/setup-env.js
+--require intelli-espower-loader
