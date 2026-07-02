@@ -67,13 +67,14 @@
         .dash-note-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
         /* My Notes: compact one-line rows; folder/space/tag/template live behind a hover ⋯ menu, keeping the list scannable */
         #dashboard-notes .dash-note { padding: 10px 8px; gap: 12px; text-align: left; }
-        #dashboard-notes .dash-note-main { display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden; flex: 1 1 auto; }
-        #dashboard-notes .dash-note-link { min-width: 0; flex: 0 1 auto; overflow: hidden; white-space: nowrap; }
+        #dashboard-notes .dash-note-main { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 8px; min-width: 0; flex: 1 1 auto; }
+        #dashboard-notes .dash-note-link { min-width: 0; max-width: 100%; flex: 0 1 auto; overflow: hidden; white-space: nowrap; }
         #dashboard-notes .dash-note-link .text { font-size: 17px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; max-width: 100%; vertical-align: bottom; }
         #dashboard-notes .dash-shared-badge, #dashboard-notes .dash-template-badge { flex: 0 0 auto; margin-left: 0; }
         #dashboard-notes .dash-pin-badge { flex: 0 0 auto; color: var(--accent); font-size: 12.5px; line-height: 1; }
         #dashboard-notes .dash-pin-badge .fa { transform: rotate(20deg); }
-        #dashboard-notes .dash-note-tags, #dashboard-notes .dash-note-spaces { display: inline-flex; align-items: center; gap: 4px; margin-top: 0; flex: 0 1 auto; min-width: 0; overflow: hidden; }
+        #dashboard-notes .dash-note-tags, #dashboard-notes .dash-note-spaces { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 0; flex: 0 1 auto; min-width: 0; }
+        #dashboard-notes .dash-note-tags .dash-tag-chip, #dashboard-notes .dash-note-spaces .space-chip { flex: 0 0 auto; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         #dashboard-notes .dash-note-tags { margin-left: 2px; }
         #dashboard-notes .dash-note-tags:empty, #dashboard-notes .dash-note-spaces:empty { display: none; }
         #dashboard-notes .dash-note-spaces .dash-spaces-label { display: none; }
