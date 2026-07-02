@@ -9,9 +9,11 @@ const logger = require('../lib/logger')
 logger.transports.forEach((t) => { t.level = 'warning' })
 
 const models = require('../lib/models/')
+const { Op } = require('sequelize')
 
 const EMAIL = 'qa@example.com'
 const PASSWORD = 'qapass123'
+const SPACE_NAMES = ['Physics 101', 'Lab Group', 'Journal Club', 'Interdisciplinary Methods Seminar']
 
 function body (title, extra) {
   return `# ${title}\n\n${extra || 'Seeded note for QA verification.'}\n`
@@ -40,7 +42,9 @@ async function run () {
     await models.Note.destroy({ where: { id: oldNoteIds } })
   }
   await models.Folder.destroy({ where: { ownerId: uid } })
-  const oldSpaces = await models.Space.findAll({ where: { createdById: uid } })
+  // wipe the seed's spaces by NAME (not just this uid) so orphans from a previously
+  // deleted-and-recreated qa (different UUID, same names) don't cause a unique collision
+  const oldSpaces = await models.Space.findAll({ where: { [Op.or]: [{ createdById: uid }, { name: SPACE_NAMES }] } })
   const oldSpaceIds = oldSpaces.map(s => s.id)
   if (oldSpaceIds.length) {
     await models.NoteSpace.destroy({ where: { spaceId: oldSpaceIds } })
@@ -60,7 +64,7 @@ async function run () {
 
   // 4. spaces (qa is steward + member) incl. long name
   const spaces = {}
-  for (const name of ['Physics 101', 'Lab Group', 'Journal Club', 'Interdisciplinary Methods Seminar']) {
+  for (const name of SPACE_NAMES) {
     const s = await models.Space.create({ name, createdById: uid })
     spaces[name] = s.id
     await models.SpaceMember.create({ spaceId: s.id, userId: uid })
