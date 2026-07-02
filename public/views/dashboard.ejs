@@ -41,6 +41,17 @@
         .folder-list .space-actions { float: right; }
         .folder-list .space-actions .fa { margin-left: 8px; color: var(--ink-faint); cursor: pointer; }
         .folder-list .space-actions .fa:hover { color: var(--accent); }
+        /* sidebar tag filter (private axis, alongside folders) */
+        .dash-tags-panel .panel-body { padding: 12px 14px 14px; }
+        .dash-tag-filter { display: flex; flex-wrap: wrap; gap: 6px; }
+        .dash-tag-filter-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 3px; font-size: 12px; font-weight: 500; color: var(--tag); background: var(--tag-tint); border: 1px solid transparent; text-decoration: none; transition: background .12s ease, border-color .12s ease, color .12s ease; }
+        .dash-tag-filter-chip:hover { border-color: color-mix(in srgb, var(--tag) 35%, transparent); color: var(--tag); text-decoration: none; }
+        .dash-tag-filter-chip.active { background: var(--tag); color: #fff; }
+        .dash-tag-filter-chip .dash-tag-filter-count { font-size: 10px; opacity: .7; font-variant-numeric: tabular-nums; }
+        .dash-tag-filter-chip[data-tag=""] { color: var(--ink-soft); background: transparent; border-color: var(--rule-strong); }
+        .dash-tag-filter-chip[data-tag=""]:hover { color: var(--ink); border-color: var(--ink-faint); }
+        .dash-tag-filter-chip[data-tag=""].active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+        .dash-tag-empty { font-size: 12px; color: var(--ink-faint); }
         /* toolbar + notes list */
         .dash-toolbar { margin-bottom: 6px; }
         .dash-toolbar .form-group { margin-right: 8px; }
@@ -236,6 +247,14 @@
                         </form>
                     </div>
                 </div>
+                <div class="panel panel-default dash-panel dash-tags-panel">
+                    <div class="panel-heading"><i class="fa fa-tag"></i> <%= __('Tags') %></div>
+                    <div class="panel-body">
+                        <div class="dash-tag-filter" id="dashboard-tag-filter">
+                            <!-- tag filter chips injected by public/js/dashboard.js -->
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="dash-main">
@@ -243,9 +262,6 @@
                     <div class="panel-heading"><i class="fa fa-sticky-note-o"></i> <%= __('Notes') %></div>
                     <div class="panel-body" id="dashboard-list">
                         <form class="form-inline dash-toolbar" id="dashboard-toolbar">
-                            <div class="form-group" style="vertical-align: bottom;">
-                                <select class="form-control" id="dashboard-tags" title="<%= __('Filter by tag') %>"><option value=""><%= __('All tags') %></option></select>
-                            </div>
                             <div class="form-group">
                                 <input class="search form-control" placeholder="<%= __('Search keyword...') %>">
                             </div>

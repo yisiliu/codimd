@@ -135,15 +135,25 @@ function visibleNotes () {
   return list
 }
 
-// populate the "filter by tag" dropdown from the current notes' user-tags
-function renderTagFilter () {
-  const $sel = $('#dashboard-tags')
-  if (!$sel.length) return
-  const allTags = Array.from(new Set([].concat.apply([], notes.map(n => n.userTags || [])))).sort()
+// render the sidebar tag-filter chips from the current notes' user-tags
+function renderTags () {
+  const $box = $('#dashboard-tag-filter')
+  if (!$box.length) return
+  const counts = {}
+  notes.forEach(n => (n.userTags || []).forEach(t => { counts[t] = (counts[t] || 0) + 1 }))
+  const allTags = Object.keys(counts).sort()
   if (allTags.indexOf(currentTag) < 0) currentTag = ''
-  $sel.empty().append($('<option>', { value: '', text: 'All tags' }))
-  allTags.forEach(t => $sel.append($('<option>', { value: t, text: t })))
-  $sel.val(currentTag)
+  $box.empty()
+  const $all = $('<a href="#" class="dash-tag-filter-chip" data-tag=""></a>').text('All')
+  if (currentTag === '') $all.addClass('active')
+  $box.append($all)
+  allTags.forEach(t => {
+    const $chip = $('<a href="#" class="dash-tag-filter-chip"></a>').attr('data-tag', t).text(t)
+    $chip.append($('<span class="dash-tag-filter-count"></span>').text(counts[t]))
+    if (currentTag === t) $chip.addClass('active')
+    $box.append($chip)
+  })
+  if (!allTags.length) $box.append($('<span class="dash-tag-empty"></span>').text('No tags yet'))
 }
 
 function renderFolders () {
@@ -179,7 +189,7 @@ function renderFolders () {
 }
 
 function renderNotes () {
-  renderTagFilter()
+  renderTags()
   const list = visibleNotes()
   noteList.clear()
   list.forEach(note => {
@@ -788,9 +798,10 @@ $('#members-modal').on('click', '.member-leave', function (e) {
   })
 })
 
-// filter notes by tag
-$('#dashboard-tags').on('change', function () {
-  currentTag = $(this).val()
+// filter notes by tag (sidebar chips)
+$('#dashboard-tag-filter').on('click', '.dash-tag-filter-chip', function (e) {
+  e.preventDefault()
+  currentTag = $(this).attr('data-tag')
   renderNotes()
 })
 
