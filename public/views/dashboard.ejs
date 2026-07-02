@@ -87,6 +87,11 @@
         #dashboard-notes .dash-note-spaces .dash-spaces-label, #browse-notes .dash-note-spaces .dash-spaces-label { display: none; }
         #browse-notes .dash-note-owner { display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto; font-size: 12px; color: var(--ink-soft); }
         #browse-notes .dash-note-owner .fa { color: var(--ink-faint); }
+        /* per-note time meta (edited · read), right-aligned before the actions */
+        #dashboard-notes .dash-note-time, #browse-notes .dash-note-time { flex: 0 0 auto; margin-left: auto; display: inline-flex; align-items: center; gap: 12px; padding-left: 8px; font-size: 11px; color: var(--ink-faint); white-space: nowrap; font-variant-numeric: tabular-nums; }
+        #dashboard-notes .dash-note-time .fa, #browse-notes .dash-note-time .fa { margin-right: 3px; opacity: .75; }
+        #dashboard-notes .dash-note-time:empty, #browse-notes .dash-note-time:empty { display: none; }
+        @media (max-width: 768px) { #dashboard-notes .dash-note-time, #browse-notes .dash-note-time { gap: 8px; font-size: 10px; } }
         #browse-notes .dash-note-owner:empty { display: none; }
         #dashboard-notes .dash-note-actions, #browse-notes .dash-note-actions { opacity: 0; transition: opacity .12s ease; }
         #dashboard-notes .dash-note:hover .dash-note-actions, #dashboard-notes .dash-note-actions:focus-within, #browse-notes .dash-note:hover .dash-note-actions, #browse-notes .dash-note-actions:focus-within { opacity: 1; }

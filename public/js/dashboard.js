@@ -41,6 +41,7 @@ const options = {
             <span class="dash-note-tags"></span>
             <span class="dash-note-spaces"></span>
           </div>
+          <div class="dash-note-time"></div>
           <div class="dash-note-actions">
             <button type="button" class="btn btn-xs btn-default dash-pin" title="Pin"><i class="fa fa-thumb-tack"></i></button>
             <button type="button" class="btn btn-xs btn-default dash-copy" title="Make a copy"><i class="fa fa-copy"></i></button>
@@ -84,6 +85,7 @@ const browseOptions = {
             <span class="dash-note-spaces"></span>
             <span class="timestamp" style="display:none;"></span>
           </div>
+          <div class="dash-note-time"></div>
           <div class="dash-note-actions">
             <button type="button" class="btn btn-xs btn-default dash-copy" title="Make a copy"><i class="fa fa-copy"></i></button>
           </div>
@@ -253,6 +255,35 @@ function escapeHtml (str) {
   return $('<div>').text(str == null ? '' : str).html()
 }
 
+// compact relative time, e.g. "just now", "3h ago", "2d ago", "Mar 4"
+function formatRelative (ts) {
+  if (!ts) return ''
+  const then = new Date(ts).getTime()
+  if (isNaN(then)) return ''
+  const secs = Math.floor((Date.now() - then) / 1000)
+  if (secs < 45) return 'just now'
+  const mins = Math.floor(secs / 60)
+  if (mins < 60) return mins + 'm ago'
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return hours + 'h ago'
+  const days = Math.floor(hours / 24)
+  if (days < 7) return days + 'd ago'
+  const d = new Date(then)
+  const sameYear = d.getFullYear() === new Date().getFullYear()
+  return d.toLocaleDateString(undefined, sameYear ? { month: 'short', day: 'numeric' } : { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+// build the "edited … · read …" meta into a row's .dash-note-time element
+function renderNoteTime ($el, note) {
+  const $time = $el.find('.dash-note-time')
+  if (!$time.length) return
+  const parts = []
+  const editedAt = note.lastchangeAt || note.createdAt
+  if (editedAt) parts.push(`<span title="Last edited ${new Date(editedAt).toLocaleString()}"><i class="fa fa-pencil"></i> ${formatRelative(editedAt)}</span>`)
+  if (note.lastReadAt) parts.push(`<span title="Last opened ${new Date(note.lastReadAt).toLocaleString()}"><i class="fa fa-eye"></i> ${formatRelative(note.lastReadAt)}</span>`)
+  $time.html(parts.join(''))
+}
+
 function checkEmpty () {
   const matching = noteList.matchingItems ? noteList.matchingItems.length : noteList.items.length
   if (matching === 0) {
@@ -320,6 +351,8 @@ noteList.on('updated', () => {
     }
     // space add select
     $el.find('.dash-space-add').html(spaceAddSelectHtml(note))
+    // last edit / last read
+    renderNoteTime($el, note)
   })
 })
 
@@ -441,6 +474,8 @@ browseList.on('updated', () => {
         $spaces.append(' ')
       })
     }
+    // last edit / last read
+    renderNoteTime($el, note)
   })
 })
 
