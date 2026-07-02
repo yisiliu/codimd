@@ -163,6 +163,46 @@ Deactivate users from the admin panel:
 
 ---
 
+## 7. Private diagram rendering (PlantUML)
+
+CodiMD renders `mermaid` and `plantuml` code blocks as diagrams. They differ in
+where the rendering happens — and that matters for a closed institute:
+
+- **Mermaid** renders **entirely in the browser** (client-side). No diagram
+  content ever leaves your network. Nothing to configure; it's themed to match
+  the app in both light and night mode.
+- **PlantUML** renders by sending the diagram source to a **PlantUML server** and
+  embedding the returned image. Upstream defaults to the **public**
+  `https://www.plantuml.com/plantuml` — meaning every PlantUML diagram's source
+  would leave your network. **For a private institute, self-host it.**
+
+Run your own PlantUML server (one small container):
+
+```bash
+docker compose -f docker-compose.plantuml.yml up -d
+# verify it renders (should return an SVG):
+#   curl -o /dev/null -w "%{http_code}\n" \
+#     "http://localhost:8888/svg/SoWkIImgAStDuNBCoKnELT2rKt3AJx9Iy4ZDoSddSaZDIodDpG40"
+```
+
+Then point CodiMD at it — in `config.json` (under your `NODE_ENV` section) or via
+env var — and restart:
+
+```json
+"plantuml": { "server": "http://localhost:8888" }
+```
+```bash
+CMD_PLANTUML_SERVER=http://localhost:8888
+```
+
+Note the URL is **host:port with no path** for the self-hosted `jetty` image (it
+serves at the root context; the `/plantuml` suffix is only the public
+plantuml.com path). After this, no PlantUML content leaves your network and
+diagrams work offline. To confirm, open a note with a `plantuml` block and check
+the diagram image's `src` points at your own server, not plantuml.com.
+
+---
+
 ## Quick reference
 
 | What | Where |

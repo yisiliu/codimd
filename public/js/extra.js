@@ -256,10 +256,33 @@ function replaceExtraTags (html) {
   return html
 }
 
+// warm, brand-tinted mermaid theme rendered on its own light "paper" background,
+// so diagrams stay consistently legible in both light and night mode (mermaid's
+// dark theme mixes light-gray labels with light node boxes → poor contrast on a
+// dark page; a self-contained light card sidesteps that, the way GitHub/Notion do).
+function mermaidThemeConfig () {
+  return {
+    startOnLoad: false,
+    theme: 'base',
+    fontFamily: '"Hanken Grotesk", -apple-system, system-ui, sans-serif',
+    background: '#faf7f1',
+    themeVariables: {
+      background: '#faf7f1',
+      primaryColor: '#f5e6e0',
+      primaryBorderColor: '#c2412a',
+      primaryTextColor: '#1d1b18',
+      lineColor: '#574f46',
+      secondaryColor: '#e7efe7',
+      tertiaryColor: '#fffefb',
+      textColor: '#1d1b18',
+      noteBkgColor: '#fbe7c6',
+      noteTextColor: '#1d1b18'
+    }
+  }
+}
+
 if (typeof window.mermaid !== 'undefined' && window.mermaid) {
-  window.mermaid.initialize({
-    startOnLoad: false
-  })
+  window.mermaid.initialize(mermaidThemeConfig())
 
   window.mermaid.parseError = function (err, hash) {
     console.warn(err)
@@ -439,6 +462,7 @@ export function finishView (view) {
   })
   // mermaid
   const mermaids = view.find('div.mermaid.raw').removeClass('raw')
+  if (mermaids.length && window.mermaid) window.mermaid.initialize(mermaidThemeConfig())
   mermaids.each(async (key, value) => {
     const $value = $(value)
     const $ele = $value.closest('pre')
