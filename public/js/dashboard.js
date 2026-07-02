@@ -32,6 +32,7 @@ const options = {
             <a class="dash-note-link" target="_blank">
               <i class="fa fa-file-text-o"></i> <span class="text"></span>
             </a>
+            <span class="dash-pin-badge" style="display:none;" title="Pinned"><i class="fa fa-thumb-tack"></i></span>
             <span class="dash-shared-badge" style="display:none;"><i class="fa fa-share-alt"></i>shared</span>
             <span class="dash-template-badge" style="display:none;"><i class="fa fa-star"></i>template</span>
             <span class="timestamp" style="display:none;"></span>
@@ -272,7 +273,13 @@ noteList.on('updated', () => {
     $el.find('.dash-note-link').attr('href', `${baseurl}/${note.id}`)
     // pin state
     const $pin = $el.find('.dash-pin')
-    if (note.pinned) $pin.addClass('active'); else $pin.removeClass('active')
+    if (note.pinned) {
+      $pin.addClass('active')
+      $el.find('.dash-pin-badge').show()
+    } else {
+      $pin.removeClass('active')
+      $el.find('.dash-pin-badge').hide()
+    }
     // template state
     const $template = $el.find('.dash-template')
     if (note.template) {
