@@ -32,15 +32,22 @@
         .dash-panel .panel-body { padding: 14px 16px; }
         /* folders / spaces list */
         .folder-list { list-style: none; margin: 0; padding: 6px 0; }
-        .folder-list > li > a { display: flex; align-items: center; justify-content: space-between; padding: 9px 16px; color: var(--ink); text-decoration: none; border-left: 3px solid transparent; transition: background .15s ease, border-color .15s ease; }
+        .folder-list > li { position: relative; }
+        .folder-list > li > a { display: flex; align-items: center; gap: 8px; padding: 9px 16px; color: var(--ink); text-decoration: none; border-left: 3px solid transparent; transition: background .15s ease, border-color .15s ease; }
         .folder-list > li > a:hover { background-color: var(--accent-tint); }
         .folder-list > li.active > a { background-color: var(--accent-tint); border-left-color: var(--accent); font-weight: 600; }
+        .folder-list > li > a > span:first-child { display: inline-flex; align-items: center; min-width: 0; flex: 1 1 auto; }
+        .folder-list .space-name, .folder-list .folder-name { min-width: 0; overflow-wrap: break-word; text-align: left; }
         .folder-list .fa { margin-right: 8px; color: var(--ink-faint); }
         .folder-list > li.active > a .fa { color: var(--accent); }
-        .folder-count { font-size: 11px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
-        .folder-list .space-actions { float: right; }
-        .folder-list .space-actions .fa { margin-left: 8px; color: var(--ink-faint); cursor: pointer; }
-        .folder-list .space-actions .fa:hover { color: var(--accent); }
+        .folder-count { flex: 0 0 auto; font-size: 11px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+        /* management icons reveal on row hover, overlaying the count — keeps names roomy in the narrow sidebar */
+        .folder-list .space-actions, .folder-list .folder-actions { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; gap: 11px; padding-left: 10px; background: var(--accent-tint); opacity: 0; pointer-events: none; transition: opacity .12s ease; }
+        .folder-list .space-actions:empty, .folder-list .folder-actions:empty { display: none; }
+        .folder-list > li:hover .space-actions, .folder-list > li:hover .folder-actions, .folder-list .space-actions:focus-within, .folder-list .folder-actions:focus-within { opacity: 1; pointer-events: auto; }
+        .folder-list .space-actions .fa, .folder-list .folder-actions .fa { margin: 0; color: var(--ink-faint); cursor: pointer; }
+        .folder-list .space-actions .fa:hover, .folder-list .folder-actions .fa:hover { color: var(--accent); }
+        @media (hover: none) { .folder-list .space-actions, .folder-list .folder-actions { position: static; transform: none; opacity: 1; pointer-events: auto; background: transparent; padding-left: 0; margin-left: 4px; } }
         /* sidebar tag filter (private axis, alongside folders) */
         .dash-tags-panel .panel-body { padding: 12px 14px 14px; }
         .dash-tag-filter { display: flex; flex-wrap: wrap; gap: 6px; }

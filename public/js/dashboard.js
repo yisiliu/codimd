@@ -173,8 +173,8 @@ function renderFolders () {
     const $li = $(`<li data-folder-row data-folder="${folder.id}">
         <a href="#" data-folder="${folder.id}">
           <span><i class="fa fa-folder-o"></i> <span class="folder-name"></span></span>
+          <span class="folder-count" data-count="${folder.id}"></span>
           <span class="folder-actions">
-            <span class="folder-count" data-count="${folder.id}"></span>
             <i class="fa fa-pencil dash-rename-folder" title="Rename"></i>
             <i class="fa fa-trash dash-delete-folder" title="Delete"></i>
           </span>
@@ -365,9 +365,8 @@ function renderBrowseSpaces () {
     const $li = $(`<li data-space-row data-space="${space.id}">
         <a href="#" data-space="${space.id}">
           <span><i class="fa fa-share-alt"></i> <span class="space-name"></span></span>
-          <span class="space-actions">
-            <span class="folder-count" data-count="${space.id}"></span>
-          </span>
+          <span class="folder-count" data-count="${space.id}"></span>
+          <span class="space-actions"></span>
         </a>
       </li>`)
     $li.find('.space-name').text(space.name)
