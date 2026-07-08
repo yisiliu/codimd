@@ -2041,6 +2041,8 @@ socket.on('refresh', function (data) {
       windowResizeInner()
       // work around might not scroll to hash
       scrollToHash()
+      // load inline comments once the document content is in place
+      if (window.codimdComments) window.codimdComments.load()
     }, 1)
   }
   if (editor.getOption('readOnly')) { editor.setOption('readOnly', false) }
@@ -3343,3 +3345,258 @@ $(editor.getInputField())
       editor.removeKeyMap(textCompleteKeyMap)
     }
   })
+
+// --- inline comments (line-anchored, REST; no OT integration) ---
+var commentsData = []
+var commentsPanelLine = null // null = closed, a line number, or 'all'
+
+function commentsApi (method, path, body) {
+  var opts = { method: method, credentials: 'same-origin' }
+  if (body) {
+    opts.headers = { 'Content-Type': 'application/json' }
+    opts.body = JSON.stringify(body)
+  }
+  return fetch(serverurl + path, opts).then(function (r) {
+    return r.json().catch(function () { return {} }).then(function (d) { return { ok: r.ok, data: d } })
+  })
+}
+
+function reanchorComment (c) {
+  // editor.getLine is 0-indexed and returns undefined out of range
+  if (editor.getLine(c.line) === c.anchorText) { c.anchoredLine = c.line; c.orphaned = false; return }
+  for (var d = 1; d <= 5; d++) {
+    if (editor.getLine(c.line - d) === c.anchorText) { c.anchoredLine = c.line - d; c.orphaned = false; return }
+    if (editor.getLine(c.line + d) === c.anchorText) { c.anchoredLine = c.line + d; c.orphaned = false; return }
+  }
+  if (!c.anchorText) { c.anchoredLine = c.line; c.orphaned = false; return }
+  c.anchoredLine = null
+  c.orphaned = true
+}
+
+function loadComments () {
+  if (!window.editor) return
+  return commentsApi('GET', '/api/notes/' + noteid + '/comments').then(function (res) {
+    if (!res.ok) return
+    commentsData = res.data.comments || []
+    commentsData.forEach(reanchorComment)
+    renderCommentGutter()
+    if (commentsPanelLine !== null) renderCommentPanel(commentsPanelLine)
+  })
+}
+
+function commentsForLine (line) {
+  return commentsData.filter(function (c) { return c.anchoredLine === line })
+}
+
+var addMarkerLine = null // the line currently showing the faint "+" add affordance
+
+function lineHasComment (line) {
+  return commentsData.some(function (c) { return !c.orphaned && c.anchoredLine === line })
+}
+
+// Show a faint "+" in the comment gutter on ONLY the active line (if it has no comment yet),
+// so the add affordance follows the cursor instead of highlighting the whole gutter column.
+function updateAddMarker () {
+  var line = editor.getCursor().line
+  if (addMarkerLine === line) return
+  if (addMarkerLine !== null && !lineHasComment(addMarkerLine)) {
+    editor.setGutterMarker(addMarkerLine, 'comment-gutters', null)
+  }
+  addMarkerLine = null
+  if (!lineHasComment(line)) {
+    var m = $('<div class="comment-add-marker" title="Add a comment on this line">+</div>')
+    m.on('click', function () { openCommentPanel(line) })
+    editor.setGutterMarker(line, 'comment-gutters', m[0])
+    addMarkerLine = line
+  }
+}
+
+function renderCommentGutter () {
+  editor.clearGutter('comment-gutters')
+  addMarkerLine = null // clearGutter wiped the "+" too
+  var byLine = {}
+  commentsData.forEach(function (c) {
+    if (c.orphaned || c.anchoredLine === null) return
+    if (!byLine[c.anchoredLine]) byLine[c.anchoredLine] = []
+    byLine[c.anchoredLine].push(c)
+  })
+  Object.keys(byLine).forEach(function (lineStr) {
+    var line = parseInt(lineStr, 10)
+    var list = byLine[line]
+    var unresolved = list.filter(function (c) { return !c.resolved }).length
+    var marker = $('<div>', { class: 'comment-marker' + (unresolved ? ' has-unresolved' : ''), title: list.length + ' comment(s)' })
+    marker.append('<i class="fa fa-comment"></i>')
+    marker.on('click', function () { openCommentPanel(line) })
+    editor.setGutterMarker(line, 'comment-gutters', marker[0])
+  })
+  updateAddMarker() // restore the active-line "+" after the clear
+}
+
+function escapeCommentHtml (s) {
+  return $('<div>').text(s == null ? '' : s).html()
+}
+
+function canModerateComment (c) {
+  return c.mine || (personalInfo && personalInfo.userid && window.owner && personalInfo.userid === window.owner)
+}
+
+// render comment markdown through the same sanitized pipeline as the preview,
+// isolating md.meta so a comment can't clobber the note's frontmatter state
+function renderCommentMarkdown (text) {
+  var savedMeta = md.meta
+  md.meta = {}
+  var html
+  try { html = preventXSS(md.render(text || '')) } catch (e) { html = preventXSS(String(text || '')) }
+  md.meta = savedMeta
+  return html
+}
+
+function commentItemHtml (c) {
+  var when = window.moment ? moment(c.createdAt).fromNow() : ''
+  var actions = ''
+  if (canModerateComment(c)) {
+    actions = '<div class="comment-actions">' +
+      '<a href="#" class="comment-resolve" data-id="' + c.id + '">' + (c.resolved ? 'Unresolve' : 'Resolve') + '</a> · ' +
+      '<a href="#" class="comment-delete" data-id="' + c.id + '">Delete</a></div>'
+  }
+  return '<div class="comment-item' + (c.resolved ? ' resolved' : '') + '">' +
+    '<div class="comment-meta"><strong>' + escapeCommentHtml(c.author && c.author.name) + '</strong> · ' + when +
+    (c.resolved ? ' · <span class="label label-success">resolved</span>' : '') + '</div>' +
+    '<div class="comment-content">' + renderCommentMarkdown(c.content) + '</div>' + actions + '</div>'
+}
+
+function renderCommentPanel (line) {
+  var $body = $('.comments-panel-body')
+  var $line = $('.comments-panel-line')
+  if (line === 'all') {
+    $line.text('')
+    var html = '<div class="comment-add-current-wrap"><button class="btn btn-default btn-sm comment-add-current"><i class="fa fa-plus"></i> Comment on current line</button></div>'
+    var inDoc = commentsData.filter(function (c) { return !c.orphaned }).sort(function (a, b) { return a.anchoredLine - b.anchoredLine })
+    var orphan = commentsData.filter(function (c) { return c.orphaned })
+    if (!commentsData.length) html += '<p class="comment-empty">No comments yet. Click the comment gutter (just right of the line numbers) on a line, or use the button above.</p>'
+    inDoc.forEach(function (c) {
+      html += '<div class="comment-line-ref" data-line="' + c.anchoredLine + '">Line ' + (c.anchoredLine + 1) + '</div>' + commentItemHtml(c)
+    })
+    if (orphan.length) {
+      html += '<div class="comment-orphan-head"><i class="fa fa-unlink"></i> Orphaned (anchor lost)</div>'
+      orphan.forEach(function (c) { html += commentItemHtml(c) })
+    }
+    $body.html(html)
+  } else {
+    $line.text('· Line ' + (line + 1))
+    var list = commentsForLine(line)
+    var h = ''
+    list.forEach(function (c) { h += commentItemHtml(c) })
+    if (!list.length) h += '<p class="comment-empty">No comments on this line yet.</p>'
+    h += '<div class="comment-add"><textarea rows="3" placeholder="Add a comment..."></textarea>' +
+      '<button class="btn btn-primary btn-sm comment-post" data-line="' + line + '">Post</button></div>'
+    $body.html(h)
+  }
+}
+
+function openCommentPanel (line) {
+  commentsPanelLine = line
+  $('.ui-comments-panel').addClass('open')
+  renderCommentPanel(line)
+}
+
+function closeCommentPanel () {
+  commentsPanelLine = null
+  $('.ui-comments-panel').removeClass('open')
+}
+
+$(document).on('click', '.ui-comments-close', function () { closeCommentPanel() })
+
+$(document).on('click', '.ui-toggle-comments', function (e) {
+  e.preventDefault()
+  if ($('.ui-comments-panel').hasClass('open') && commentsPanelLine === 'all') { closeCommentPanel() } else { openCommentPanel('all') }
+})
+
+$(document).on('click', '.comment-post', function () {
+  var line = parseInt($(this).data('line'), 10)
+  var $ta = $(this).closest('.comment-add').find('textarea')
+  var content = ($ta.val() || '').trim()
+  if (!content) return
+  commentsApi('POST', '/api/notes/' + noteid + '/comments', { line: line, anchorText: editor.getLine(line) || '', content: content }).then(function (res) {
+    if (res.ok) { $ta.val(''); loadComments() } else { alert((res.data && res.data.message) || 'Could not post comment') }
+  })
+})
+
+$(document).on('click', '.comment-resolve', function (e) {
+  e.preventDefault()
+  var id = $(this).data('id')
+  var c = commentsData.filter(function (x) { return x.id === id })[0]
+  commentsApi('PUT', '/api/comments/' + id, { resolved: !(c && c.resolved) }).then(function (res) {
+    if (res.ok) loadComments()
+  })
+})
+
+$(document).on('click', '.comment-delete', function (e) {
+  e.preventDefault()
+  var id = $(this).data('id')
+  commentsApi('DELETE', '/api/comments/' + id).then(function (res) {
+    if (res.ok) loadComments()
+  })
+})
+
+$(document).on('click', '.comment-line-ref', function () {
+  var line = parseInt($(this).data('line'), 10)
+  editor.setCursor(line, 0)
+  editor.scrollIntoView({ line: line, ch: 0 }, 100)
+})
+
+$(document).on('click', '.comment-add-current', function () {
+  openCommentPanel(editor.getCursor().line)
+})
+
+// click anywhere in the comment gutter (even an empty line) to add a comment there
+editor.on('gutterClick', function (cm, line, gutter) {
+  if (gutter === 'comment-gutters') openCommentPanel(line)
+})
+
+// keep the faint "+" add-affordance on the active line only
+editor.on('cursorActivity', function () { updateAddMarker() })
+
+// view mode: select text in the rendered note -> floating "Comment" button -> comment on its source line
+var $commentSelBtn = null
+function removeCommentSelBtn () {
+  if ($commentSelBtn) { $commentSelBtn.remove(); $commentSelBtn = null }
+}
+
+function sourceLineOfSelection (sel) {
+  var node = sel.anchorNode
+  if (!node) return null
+  var $el = $(node.nodeType === 3 ? node.parentNode : node).closest('[data-startline]')
+  if (!$el.length) return null
+  var line = parseInt($el.attr('data-startline'), 10) - 1
+  return line >= 0 ? line : null
+}
+
+$(document).on('mouseup', '#doc', function () {
+  setTimeout(function () {
+    removeCommentSelBtn()
+    var sel = window.getSelection()
+    var text = sel ? String(sel).trim() : ''
+    if (!text || !sel.rangeCount) return
+    var line = sourceLineOfSelection(sel)
+    if (line === null) return
+    var rect = sel.getRangeAt(0).getBoundingClientRect()
+    $commentSelBtn = $('<button class="btn btn-primary btn-xs comment-selection-btn"><i class="fa fa-comment"></i> Comment</button>')
+    $commentSelBtn.css({ top: (rect.bottom + 6) + 'px', left: Math.max(8, rect.left) + 'px' })
+    $commentSelBtn.on('mousedown', function (e) { e.preventDefault() }) // keep the text selection
+    $commentSelBtn.on('click', function () {
+      var quote = '> ' + text.replace(/\s+/g, ' ').slice(0, 200) + '\n\n'
+      openCommentPanel(line)
+      var $ta = $('.comment-add textarea')
+      if ($ta.length) { $ta.val(quote); $ta.focus() }
+      removeCommentSelBtn()
+    })
+    $('body').append($commentSelBtn)
+  }, 10)
+})
+
+$(document).on('mousedown', function (e) {
+  if ($commentSelBtn && !$(e.target).closest('.comment-selection-btn').length) removeCommentSelBtn()
+})
+
+window.codimdComments = { load: loadComments }

@@ -122,6 +122,12 @@ The dashboard has a **My Notes ⇄ Browse** toggle:
 - **Templates:** a `Note.template` boolean (owner-toggled via `PUT /api/notes/:id/template`); `GET /api/templates` lists viewable, flagged notes; the dashboard has a copy button per row (My Notes + Browse), a template star/badge, and a "New from template" picker. Copy buttons also live in the editor menu (`codimd/header.ejs` `.ui-make-copy` + `public/js/index.js`) and the published view (`pretty.ejs`).
 - **Read-only handouts** are just CodiMD's existing `protected`/`locked` permission — no new code; the copy button is the new affordance.
 
+### Inline comments (`lib/comment`)
+
+Line-anchored feedback on notes, **REST** (deliberately no OT/realtime — comments don't live-sync; they load on note open + refresh after each action):
+- **`Comment`** model (`noteId`, `authorId`, `line`, `anchorText` snapshot, `content`, `resolved`). Endpoints `GET/POST /api/notes/:id/comments` + `PUT/DELETE /api/comments/:cid` (same `/api/*`-only, parse-encoded-id, above-`/:noteId` discipline). View/post by anyone who may **view** the note (`newCheckViewPermission`); resolve/delete by **author, note owner, or institute `owner`** (`canModerate`). Note delete clears its comments (`cleanupNoteOrganization`).
+- **Editor UI** (`public/js/index.js` + `public/views/codimd/body.ejs` + `header.ejs` + `public/css/index.css`): a `comment-gutters` CodeMirror lane (red marker = unresolved) + a **fixed right-drawer** panel (docked as `position:fixed`, NOT a flex sibling — robust against the split-pane layout) to read/add/resolve/delete per line, plus a "Comments" menu toggle for an all-comments view. **Drift-tolerant anchoring:** on load each comment re-locates by matching `editor.getLine(line)` to its `anchorText`, scanning ±5 lines, else listed under **Orphaned**. The client uses the server `mine` flag for affordances (there's no `currentUser` var); the server re-checks every mutation.
+
 ### Testing notes (org/dashboard/browse)
 
 - `test/helpers/db.js` (`{ models, resetDb }`) syncs models to sqlite `:memory:`. **`Notes.ownerId` is an enforced FK on sqlite** (its association carries `onDelete:'CASCADE'`), so any test creating a `Note` must seed a real `User` (`User.create({})` — no password, no scrypt). Notes whose title is asserted need non-empty `content` (the `beforeCreate` hook overwrites empty-content titles from `public/default.md`).

@@ -139,6 +139,32 @@ You'll want **both** accounts here (owner shares, user discovers).
 
 ---
 
+## 5. Inline comments (Slice 3b)
+
+Open any note in the editor (use **Both** mode so you can see the editor + preview).
+
+### 5.1 Add a line comment (editor)
+- [ ] **Do:** In the editor, put the cursor on a line — a faint **+** appears in the comment gutter (just right of the line numbers) on *that line only*. Click it to open the **Comments** panel with an "Add a comment…" box; type and click **Post**. *(Alternatives: open **Menu → Comments → "+ Comment on current line"**; or click a line's 💬 marker once it has comments.)*
+- [ ] **Expect:** the **+** follows the cursor (only one line at a time); after posting, a 💬 marker appears on that line (**red** = unresolved), and the comment shows with your name + time.
+
+### 5.1b Add a comment by selecting text (view / Both mode)
+- [ ] **Do:** In the rendered note (View or Both mode), **select some text**. A small **💬 Comment** button pops up by the selection — click it.
+- [ ] **Expect:** the Comments panel opens for that text's source line, pre-filled with the selected text as a `>` quote; finish your comment and **Post**.
+
+### 5.2 Persists + visible to other viewers
+- [ ] **Do:** Reload the note. Then open it as **another member who can view it** (e.g. share it / a space, sign in as the user).
+- [ ] **Expect:** the marker + comment are still there after reload, and the other member sees them too (comments are visible to anyone who can view the note). They can reply by adding their own comment to the line.
+
+### 5.3 Resolve / delete + moderation
+- [ ] **Do:** Click **Resolve** on a comment; then **Delete**.
+- [ ] **Expect:** resolving greys it out (the gutter marker turns **orange** when nothing on the line is unresolved); deleting removes it (marker disappears when the line has none). **Resolve/Delete only show for the comment's author, the note's owner, or an institute owner** — a plain bystander viewing the note sees the comment but no moderation actions (and the server returns 403 if forced).
+
+### 5.4 All-comments view + drift
+- [ ] **Do:** Open **Menu → Comments** with no specific line → the panel lists **all** comments grouped by line (click **Line N** to jump there). Then edit the document — insert a few lines *above* a commented line.
+- [ ] **Expect:** the comment re-anchors to follow its line (matched by the line's text). If you change the commented line's text entirely, it appears under an **Orphaned (anchor lost)** section rather than vanishing.
+
+---
+
 ## Notes
 - The instance is invite-only — new accounts come only from `/admin` invites (or the `bin/manage_users` CLI), never self-registration.
 - "Handouts" are just CodiMD's existing **protected/locked** permission — the new part is the **Make a copy** button.
