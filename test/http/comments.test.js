@@ -44,4 +44,35 @@ describe('HTTP: comments', function () {
     assert.strictEqual((await request(as(bystander)).delete(`/api/comments/${c.id}`)).status, 403)
     assert.strictEqual((await request(as(other)).delete(`/api/comments/${c.id}`)).status, 200)
   })
+
+  it('a reply nests under its parent and inherits the parent line/anchor', async function () {
+    const n = await models.Note.create({ ownerId: owner, content: '# d', permission: 'editable' })
+    const parent = await comment.addComment({ id: owner, role: 'user' }, n.id, { line: 5, anchorText: 'the line', content: 'clarify?' })
+    const res = await request(as(other)).post(`/api/notes/${enc(n.id)}/comments`).send({ parentId: parent.id, content: 'fixed' })
+    assert.strictEqual(res.status, 200)
+    const list = (await request(as(owner)).get(`/api/notes/${enc(n.id)}/comments`)).body.comments
+    assert.strictEqual(list.length, 2)
+    const reply = list.find(c => c.parentId)
+    assert.strictEqual(String(reply.parentId), String(parent.id))
+    assert.strictEqual(reply.line, 5) // inherited
+    assert.strictEqual(reply.content, 'fixed')
+  })
+
+  it('a reply cannot be nested under another reply (one level only)', async function () {
+    const n = await models.Note.create({ ownerId: owner, content: '# d', permission: 'editable' })
+    const parent = await comment.addComment({ id: owner, role: 'user' }, n.id, { line: 0, content: 'a' })
+    const reply = await comment.addComment({ id: other, role: 'user' }, n.id, { parentId: parent.id, content: 'b' })
+    const res = await request(as(owner)).post(`/api/notes/${enc(n.id)}/comments`).send({ parentId: reply.id, content: 'c' })
+    assert.strictEqual(res.status, 400)
+  })
+
+  it('deleting a top-level comment also deletes its replies', async function () {
+    const n = await models.Note.create({ ownerId: owner, content: '# d', permission: 'editable' })
+    const parent = await comment.addComment({ id: owner, role: 'user' }, n.id, { line: 0, content: 'a' })
+    await comment.addComment({ id: other, role: 'user' }, n.id, { parentId: parent.id, content: 'b' })
+    await comment.addComment({ id: owner, role: 'user' }, n.id, { parentId: parent.id, content: 'c' })
+    assert.strictEqual(await models.Comment.count({ where: { noteId: n.id } }), 3)
+    await request(as(owner)).delete(`/api/comments/${parent.id}`)
+    assert.strictEqual(await models.Comment.count({ where: { noteId: n.id } }), 0)
+  })
 })

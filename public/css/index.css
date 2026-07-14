@@ -290,6 +290,46 @@ body.night{
     margin-top: 4px;
     font-size: 11px;
 }
+/* threaded replies */
+.comment-replies {
+    margin: 6px 0 0 14px;
+    padding-left: 10px;
+    border-left: 2px solid #e2dac9;
+}
+.comment-reply {
+    padding: 6px 0;
+}
+.comment-reply + .comment-reply {
+    border-top: 1px solid #f0ece2;
+}
+.comment-reply .comment-meta {
+    font-size: 11px;
+    color: #888;
+}
+.comment-reply-add {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    margin-top: 6px;
+}
+.comment-reply-add textarea {
+    flex: 1 1 auto;
+    resize: vertical;
+    min-height: 26px;
+    color: #333;
+    font-size: 12px;
+}
+.night .comment-replies {
+    border-left-color: #473e33;
+}
+.night .comment-reply + .comment-reply {
+    border-top-color: #352e26;
+}
+.night .comment-reply-add textarea {
+    background: #2d2d2d;
+    color: #ddd;
+    border-color: #444;
+}
 .comment-add {
     padding: 10px 14px;
 }
