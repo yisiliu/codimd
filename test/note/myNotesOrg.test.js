@@ -36,4 +36,13 @@ describe('getMyNoteList with organization', function () {
     assert.strictEqual(list[0].pinned, true)
     assert.deepStrictEqual(list[0].userTags, ['ml'])
   })
+
+  it('reports commentCount as unresolved TOP-LEVEL comments only', async function () {
+    const note = await models.Note.create({ ownerId: u1, title: 'N', content: 'body' })
+    const c1 = await models.Comment.create({ noteId: note.id, authorId: u2, line: 0, content: 'open' })
+    await models.Comment.create({ noteId: note.id, authorId: u2, line: 1, content: 'done', resolved: true }) // resolved → not counted
+    await models.Comment.create({ noteId: note.id, authorId: u1, parentId: c1.id, line: 0, content: 'reply' }) // reply → not counted
+    const list = await getMyNoteList(u1)
+    assert.strictEqual(list[0].commentCount, 1)
+  })
 })

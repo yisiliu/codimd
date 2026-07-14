@@ -39,6 +39,7 @@ const options = {
               <i class="fa fa-file-text-o"></i> <span class="text"></span>
             </a>
             <span class="dash-pin-badge" style="display:none;" title="Pinned"><i class="fa fa-thumb-tack"></i></span>
+            <a class="dash-comment-badge" target="_blank" style="display:none;" title="Unresolved comments"><i class="fa fa-comment-o"></i> <span class="dash-comment-count"></span></a>
             <span class="dash-shared-badge" style="display:none;"><i class="fa fa-share-alt"></i>shared</span>
             <span class="dash-template-badge" style="display:none;"><i class="fa fa-star"></i>template</span>
             <span class="timestamp" style="display:none;"></span>
@@ -85,6 +86,7 @@ const browseOptions = {
             <a class="dash-note-link" target="_blank">
               <i class="fa fa-file-text-o"></i> <span class="text"></span>
             </a>
+            <a class="dash-comment-badge" target="_blank" style="display:none;" title="Unresolved comments"><i class="fa fa-comment-o"></i> <span class="dash-comment-count"></span></a>
             <span class="dash-note-owner"></span>
             <span class="dash-note-spaces"></span>
             <span class="timestamp" style="display:none;"></span>
@@ -333,6 +335,19 @@ function formatRelative (ts) {
   return d.toLocaleDateString(undefined, sameYear ? { month: 'short', day: 'numeric' } : { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
+// show an unresolved-comment badge (count) that opens the note when clicked
+function renderCommentBadge ($el, note) {
+  const $b = $el.find('.dash-comment-badge')
+  if (!$b.length) return
+  const n = note.commentCount || 0
+  if (n > 0) {
+    $b.find('.dash-comment-count').text(n)
+    $b.attr('href', `${baseurl}/${note.id}`).attr('title', `${n} unresolved comment${n > 1 ? 's' : ''}`).show()
+  } else {
+    $b.hide()
+  }
+}
+
 // build the "edited … · read …" meta into a row's .dash-note-time element
 function renderNoteTime ($el, note) {
   const $time = $el.find('.dash-note-time')
@@ -411,8 +426,9 @@ noteList.on('updated', () => {
     }
     // space add select
     $el.find('.dash-space-add').html(spaceAddSelectHtml(note))
-    // last edit / last read
+    // last edit / last read + unresolved-comment badge
     renderNoteTime($el, note)
+    renderCommentBadge($el, note)
   })
   syncSelectionUI()
 })
@@ -597,8 +613,9 @@ browseList.on('updated', () => {
         $spaces.append(' ')
       })
     }
-    // last edit / last read
+    // last edit / last read + unresolved-comment badge
     renderNoteTime($el, note)
+    renderCommentBadge($el, note)
   })
 })
 
