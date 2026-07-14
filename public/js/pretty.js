@@ -22,6 +22,7 @@ import { preventXSS } from './render'
 require('../css/extra.css')
 require('../css/slide-preview.css')
 require('../css/site.css')
+require('../css/pretty-comments.css')
 
 require('highlight.js/styles/github-gist.css')
 
@@ -129,7 +130,54 @@ $(document).ready(() => {
   setTimeout(scrollToHash, 0)
   // tooltip
   $('[data-toggle="tooltip"]').tooltip()
+  loadPublishedComments()
 })
+
+// --- read-only feedback (comments) on the published view ---
+function escapeC (s) { return $('<div>').text(s == null ? '' : s).html() }
+
+function renderCommentMd (text) {
+  const saved = md.meta
+  md.meta = {}
+  let html
+  try { html = preventXSS(md.render(text || '')) } catch (e) { html = escapeC(text) }
+  md.meta = saved
+  return html
+}
+
+function renderPublishedComments (comments) {
+  const top = comments.filter(c => !c.parentId).sort((a, b) => a.line - b.line)
+  if (!top.length) return
+  let body = ''
+  top.forEach(c => {
+    const replies = comments.filter(r => String(r.parentId) === String(c.id))
+      .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+    body += '<div class="pc-item' + (c.resolved ? ' resolved' : '') + '">' +
+      '<div class="pc-meta">Line ' + (c.line + 1) + ' · <strong>' + escapeC(c.author && c.author.name) + '</strong>' +
+      (c.resolved ? ' · <span class="pc-resolved">resolved</span>' : '') + '</div>' +
+      '<div class="pc-content">' + renderCommentMd(c.content) + '</div>'
+    replies.forEach(r => {
+      body += '<div class="pc-reply"><div class="pc-meta"><strong>' + escapeC(r.author && r.author.name) + '</strong></div>' +
+        '<div class="pc-content">' + renderCommentMd(r.content) + '</div></div>'
+    })
+    body += '</div>'
+  })
+  const $btn = $('<button class="pc-toggle"><i class="fa fa-comment-o"></i> Feedback (' + top.length + ')</button>')
+  const $panel = $('<div class="pc-panel"><div class="pc-head"><span><i class="fa fa-comment-o"></i> Feedback</span><span class="pc-close">&times;</span></div><div class="pc-body">' + body + '</div></div>')
+  $(document.body).append($btn).append($panel)
+  $btn.on('click', () => $panel.toggleClass('open'))
+  $panel.find('.pc-close').on('click', () => $panel.removeClass('open'))
+}
+
+function loadPublishedComments () {
+  const seg = window.location.pathname.split('/').filter(Boolean).pop()
+  if (!seg) return
+  const base = window.serverurl || ''
+  fetch(base + '/api/notes/' + seg + '/comments', { credentials: 'same-origin' })
+    .then(r => (r.ok ? r.json() : null))
+    .then(data => { if (data && data.comments && data.comments.length) renderPublishedComments(data.comments) })
+    .catch(() => {})
+}
 
 export function scrollToTop () {
   $('body, html').stop(true, true).animate({
