@@ -1,0 +1,29 @@
+# Self-hosted PlantUML rendering for a closed institute.
+#
+# Why: CodiMD renders ```plantuml blocks by sending the diagram source to a
+# PlantUML server and embedding the returned image. The upstream default is
+# the PUBLIC https://www.plantuml.com/plantuml — so every PlantUML diagram's
+# source would leave your network. For a private institute, run your own.
+#
+# Mermaid needs nothing here: it renders entirely client-side (in the browser),
+# so no diagram content ever leaves the network for mermaid blocks.
+#
+# Usage:
+#   docker compose -f docker-compose.plantuml.yml up -d
+# then point CodiMD at it in config.json (per NODE_ENV section) or via env:
+#   "plantuml": { "server": "http://localhost:8888" }
+#   CMD_PLANTUML_SERVER=http://localhost:8888
+#
+# The jetty image serves at the ROOT context, so the URL is just host:port
+# (NOT host:port/plantuml, which is only the public plantuml.com path).
+
+services:
+  plantuml:
+    image: plantuml/plantuml-server:jetty
+    container_name: codimd-plantuml
+    restart: unless-stopped
+    ports:
+      - "8888:8080"
+    environment:
+      # cap render size / allow local text includes off by default (safe)
+      - PLANTUML_LIMIT_SIZE=8192

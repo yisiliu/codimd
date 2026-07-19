@@ -3,16 +3,49 @@
 
 <head>
     <%- include('../index/head') %>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,900;1,9..144,500&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style nonce="<%= nonce %>">
+        :root {
+            --paper: #f7f4ee; --paper-raised: #fffefb; --ink: #1d1b18; --ink-soft: #574f46; --ink-faint: #948b7d;
+            --rule: #e6e0d4; --rule-strong: #d2c9b9; --accent: #c2412a; --accent-deep: #a2331f; --accent-tint: #f5e6e0;
+        }
+        html, body, .site-wrapper, .site-wrapper-inner { background: var(--paper) !important; color: var(--ink); }
+        body { font-family: 'Hanken Grotesk', system-ui, sans-serif; font-size: 15.5px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+        .cover-container { max-width: 460px; }
+        .inner.cover { text-align: left; }
+        .invite-mark { font-family: 'Fraunces', Georgia, serif; font-weight: 900; color: var(--ink); font-size: clamp(44px, 9vw, 68px); line-height: .92; letter-spacing: -.02em; margin: 0; }
+        .invite-mark .fa { color: var(--accent); font-size: .7em; }
+        .invite-rule { height: 3px; width: 64px; background: var(--accent); border: 0; margin: 18px 0 22px; }
+        .invite-lead { color: var(--ink-soft); font-size: 18px; line-height: 1.5; max-width: 30ch; }
+        .invite-lead strong { color: var(--ink); }
+        .invite-card { background: var(--paper-raised); border: 1px solid var(--rule); border-radius: 4px; box-shadow: 0 10px 34px rgba(34, 29, 23, .07); max-width: 400px; margin: 26px 0 0; }
+        .invite-card .panel-body { padding: 22px; }
+        .form-control { background: var(--paper); color: var(--ink); border: 1px solid var(--rule-strong); border-radius: 3px; box-shadow: none; height: 44px; }
+        .form-control:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-tint); }
+        .form-control::placeholder { color: var(--ink-faint); }
+        .btn-invite { background: var(--accent); border: 0; border-radius: 3px; color: #fff; font-weight: 600; letter-spacing: .02em; height: 46px; width: 100%; transition: background .15s ease; }
+        .btn-invite:hover, .btn-invite:focus { background: var(--accent-deep); color: #fff; }
+        .invite-signin { display: inline-block; margin-top: 20px; color: var(--accent) !important; font-weight: 500; }
+        .invite-signin:hover { color: var(--accent-deep) !important; }
+        .alert-danger { background: var(--accent-tint); border-color: color-mix(in srgb, var(--accent) 30%, transparent); color: var(--accent-deep); }
+        @keyframes invIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+        .inner.cover > * { animation: invIn .55s cubic-bezier(.22,.61,.36,1) both; }
+        .invite-rule { animation-delay: .06s; } .invite-lead { animation-delay: .1s; } .invite-card { animation-delay: .16s; } .invite-signin { animation-delay: .22s; }
+        @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+    </style>
 </head>
 
 <body>
     <div class="site-wrapper">
         <div class="site-wrapper-inner">
             <div class="cover-container">
-                <div class="inner cover" style="margin-top: 8vh;">
-                    <h1 class="cover-heading"><i class="fa fa-file-text"></i> CodiMD</h1>
-                    <p class="lead"><%= __('You have been invited. Create your account to get started.') %></p>
-                    <div class="panel panel-default" style="max-width: 360px; margin: 24px auto 0; text-align: left;">
+                <div class="inner cover" style="margin-top: 12vh;">
+                    <h1 class="invite-mark"><i class="fa fa-file-text"></i> CodiMD</h1>
+                    <hr class="invite-rule">
+                    <p class="invite-lead"><%= __('You have been invited.') %> <strong><%= __('Create your account to get started.') %></strong></p>
+                    <div class="invite-card">
                         <div class="panel-body">
                             <% errorMessages.forEach(function (m) { %>
                             <div class="alert alert-danger"><%= m %></div>
@@ -25,11 +58,11 @@
                                 <div class="form-group">
                                     <input type="password" name="password" class="form-control" placeholder="<%= __('Password') %>" minlength="8" required>
                                 </div>
-                                <button type="submit" class="btn btn-lg btn-success btn-block"><%= __('Create account') %></button>
+                                <button type="submit" class="btn-invite"><%= __('Create account') %></button>
                             </form>
                         </div>
                     </div>
-                    <p style="margin-top: 16px;"><a href="<%- serverURL %>/" style="color: #fff;"><%= __('Already have an account? Sign in') %></a></p>
+                    <a class="invite-signin" href="<%- serverURL %>/"><%= __('Already have an account? Sign in') %></a>
                 </div>
             </div>
         </div>

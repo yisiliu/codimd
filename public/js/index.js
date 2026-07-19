@@ -3416,7 +3416,7 @@ function renderCommentGutter () {
   addMarkerLine = null // clearGutter wiped the "+" too
   var byLine = {}
   commentsData.forEach(function (c) {
-    if (c.orphaned || c.anchoredLine === null) return
+    if (c.parentId || c.orphaned || c.anchoredLine === null) return // replies don't get their own marker
     if (!byLine[c.anchoredLine]) byLine[c.anchoredLine] = []
     byLine[c.anchoredLine].push(c)
   })
@@ -3451,6 +3451,25 @@ function renderCommentMarkdown (text) {
   return html
 }
 
+function repliesFor (parentId) {
+  return commentsData.filter(function (c) { return String(c.parentId) === String(parentId) })
+    .sort(function (a, b) { return new Date(a.createdAt) - new Date(b.createdAt) })
+}
+
+function commentRepliesHtml (parent) {
+  var h = ''
+  repliesFor(parent.id).forEach(function (r) {
+    var when = window.moment ? moment(r.createdAt).fromNow() : ''
+    var del = canModerateComment(r) ? '<div class="comment-actions"><a href="#" class="comment-delete" data-id="' + r.id + '">Delete</a></div>' : ''
+    h += '<div class="comment-reply">' +
+      '<div class="comment-meta"><strong>' + escapeCommentHtml(r.author && r.author.name) + '</strong> · ' + when + '</div>' +
+      '<div class="comment-content">' + renderCommentMarkdown(r.content) + '</div>' + del + '</div>'
+  })
+  h += '<div class="comment-reply-add"><textarea rows="1" placeholder="Reply..."></textarea>' +
+    '<button class="btn btn-default btn-xs comment-reply-post" data-parent="' + parent.id + '">Reply</button></div>'
+  return '<div class="comment-replies">' + h + '</div>'
+}
+
 function commentItemHtml (c) {
   var when = window.moment ? moment(c.createdAt).fromNow() : ''
   var actions = ''
@@ -3462,7 +3481,8 @@ function commentItemHtml (c) {
   return '<div class="comment-item' + (c.resolved ? ' resolved' : '') + '">' +
     '<div class="comment-meta"><strong>' + escapeCommentHtml(c.author && c.author.name) + '</strong> · ' + when +
     (c.resolved ? ' · <span class="label label-success">resolved</span>' : '') + '</div>' +
-    '<div class="comment-content">' + renderCommentMarkdown(c.content) + '</div>' + actions + '</div>'
+    '<div class="comment-content">' + renderCommentMarkdown(c.content) + '</div>' + actions +
+    commentRepliesHtml(c) + '</div>'
 }
 
 function renderCommentPanel (line) {
@@ -3471,8 +3491,9 @@ function renderCommentPanel (line) {
   if (line === 'all') {
     $line.text('')
     var html = '<div class="comment-add-current-wrap"><button class="btn btn-default btn-sm comment-add-current"><i class="fa fa-plus"></i> Comment on current line</button></div>'
-    var inDoc = commentsData.filter(function (c) { return !c.orphaned }).sort(function (a, b) { return a.anchoredLine - b.anchoredLine })
-    var orphan = commentsData.filter(function (c) { return c.orphaned })
+    var topLevel = commentsData.filter(function (c) { return !c.parentId })
+    var inDoc = topLevel.filter(function (c) { return !c.orphaned }).sort(function (a, b) { return a.anchoredLine - b.anchoredLine })
+    var orphan = topLevel.filter(function (c) { return c.orphaned })
     if (!commentsData.length) html += '<p class="comment-empty">No comments yet. Click the comment gutter (just right of the line numbers) on a line, or use the button above.</p>'
     inDoc.forEach(function (c) {
       html += '<div class="comment-line-ref" data-line="' + c.anchoredLine + '">Line ' + (c.anchoredLine + 1) + '</div>' + commentItemHtml(c)
@@ -3484,7 +3505,7 @@ function renderCommentPanel (line) {
     $body.html(html)
   } else {
     $line.text('· Line ' + (line + 1))
-    var list = commentsForLine(line)
+    var list = commentsForLine(line).filter(function (c) { return !c.parentId })
     var h = ''
     list.forEach(function (c) { h += commentItemHtml(c) })
     if (!list.length) h += '<p class="comment-empty">No comments on this line yet.</p>'
@@ -3519,6 +3540,16 @@ $(document).on('click', '.comment-post', function () {
   if (!content) return
   commentsApi('POST', '/api/notes/' + noteid + '/comments', { line: line, anchorText: editor.getLine(line) || '', content: content }).then(function (res) {
     if (res.ok) { $ta.val(''); loadComments() } else { alert((res.data && res.data.message) || 'Could not post comment') }
+  })
+})
+
+$(document).on('click', '.comment-reply-post', function () {
+  var parentId = $(this).data('parent')
+  var $ta = $(this).closest('.comment-reply-add').find('textarea')
+  var content = ($ta.val() || '').trim()
+  if (!content) return
+  commentsApi('POST', '/api/notes/' + noteid + '/comments', { parentId: parentId, content: content }).then(function (res) {
+    if (res.ok) { $ta.val(''); loadComments() } else { alert((res.data && res.data.message) || 'Could not post reply') }
   })
 })
 

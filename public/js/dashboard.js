@@ -16,6 +16,11 @@ let folders = []
 let spaces = []
 let currentFolder = 'all' // 'all' | 'unfiled' | folderId
 let currentTag = '' // '' = all tags, else a user-tag
+let searchIds = null // null = no search; else a Set of encoded ids matched server-side (title/content/tags)
+let browseSearchIds = null // same, for the Browse view
+let currentSort = 'edited' // 'edited' | 'opened' | 'title' | 'created'
+let selectMode = false
+const selectedIds = new Set() // encoded ids selected for bulk actions
 
 // browse state
 const dashboardUser = (typeof window !== 'undefined' && window.dashboardUser) || { id: '', role: '' }
@@ -28,28 +33,43 @@ const options = {
   valueNames: ['text', 'timestamp', 'noteid'],
   item: `<li class="dash-note">
           <span class="noteid" style="display:none;"></span>
+          <input type="checkbox" class="dash-note-check" title="Select">
           <div class="dash-note-main">
             <a class="dash-note-link" target="_blank">
               <i class="fa fa-file-text-o"></i> <span class="text"></span>
             </a>
+            <span class="dash-pin-badge" style="display:none;" title="Pinned"><i class="fa fa-thumb-tack"></i></span>
+            <a class="dash-comment-badge" target="_blank" style="display:none;" title="Unresolved comments"><i class="fa fa-comment-o"></i> <span class="dash-comment-count"></span></a>
             <span class="dash-shared-badge" style="display:none;"><i class="fa fa-share-alt"></i>shared</span>
             <span class="dash-template-badge" style="display:none;"><i class="fa fa-star"></i>template</span>
             <span class="timestamp" style="display:none;"></span>
-            <div class="dash-note-tags"></div>
-            <div class="dash-note-spaces"></div>
+            <span class="dash-note-tags"></span>
+            <span class="dash-note-spaces"></span>
           </div>
+          <div class="dash-note-time"></div>
           <div class="dash-note-actions">
             <button type="button" class="btn btn-xs btn-default dash-pin" title="Pin"><i class="fa fa-thumb-tack"></i></button>
-            <button type="button" class="btn btn-xs btn-default dash-template" title="Toggle template"><i class="fa fa-star-o"></i></button>
             <button type="button" class="btn btn-xs btn-default dash-copy" title="Make a copy"><i class="fa fa-copy"></i></button>
-            <select class="form-control input-sm dash-move"></select>
-            <select class="form-control input-sm dash-space-add" title="Add to shared space"></select>
-            <form class="dash-add-tag form-inline">
-              <div class="input-group input-group-sm">
-                <input type="text" class="form-control dash-tag-input" placeholder="Add tag">
-                <span class="input-group-btn"><button type="submit" class="btn btn-default" title="Add tag"><i class="fa fa-plus"></i></button></span>
+            <div class="dropdown dash-menu">
+              <button type="button" class="btn btn-xs btn-default dash-menu-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Organize"><i class="fa fa-ellipsis-h"></i></button>
+              <div class="dropdown-menu dropdown-menu-right dash-menu-panel">
+                <div class="dash-menu-section">Organize<span class="dash-menu-hint"> · only you</span></div>
+                <div class="dash-menu-row"><span class="dash-menu-label">Folder</span><select class="form-control input-sm dash-move"></select></div>
+                <div class="dash-menu-row"><span class="dash-menu-label">Tags</span>
+                  <form class="dash-add-tag form-inline">
+                    <div class="input-group input-group-sm">
+                      <input type="text" class="form-control dash-tag-input" placeholder="Add tag">
+                      <span class="input-group-btn"><button type="submit" class="btn btn-default" title="Add tag"><i class="fa fa-plus"></i></button></span>
+                    </div>
+                  </form>
+                </div>
+                <div class="dash-menu-divider"></div>
+                <div class="dash-menu-section"><i class="fa fa-share-alt"></i>Share<span class="dash-menu-hint"> · visible to members</span></div>
+                <div class="dash-menu-row"><span class="dash-menu-label">Space</span><select class="form-control input-sm dash-space-add" title="Add to shared space"></select></div>
+                <div class="dash-menu-divider"></div>
+                <button type="button" class="btn btn-xs btn-default dash-template dash-menu-template" title="Toggle template"><i class="fa fa-star-o"></i> Template</button>
               </div>
-            </form>
+            </div>
           </div>
         </li>`,
   page: 18,
@@ -66,10 +86,12 @@ const browseOptions = {
             <a class="dash-note-link" target="_blank">
               <i class="fa fa-file-text-o"></i> <span class="text"></span>
             </a>
+            <a class="dash-comment-badge" target="_blank" style="display:none;" title="Unresolved comments"><i class="fa fa-comment-o"></i> <span class="dash-comment-count"></span></a>
+            <span class="dash-note-owner"></span>
+            <span class="dash-note-spaces"></span>
             <span class="timestamp" style="display:none;"></span>
-            <div class="dash-note-owner"></div>
-            <div class="dash-note-spaces"></div>
           </div>
+          <div class="dash-note-time"></div>
           <div class="dash-note-actions">
             <button type="button" class="btn btn-xs btn-default dash-copy" title="Make a copy"><i class="fa fa-copy"></i></button>
           </div>
@@ -98,7 +120,7 @@ function apiSend (method, path, body) {
 // --- load + render ---
 
 function load () {
-  Promise.all([
+  return Promise.all([
     apiGet('/api/notes/myNotes'),
     apiGet('/api/folders'),
     apiGet('/api/spaces')
@@ -107,6 +129,7 @@ function load () {
     folders = (foldersData && foldersData.folders) || []
     spaces = (spacesData && spacesData.spaces) || []
     renderFolders()
+    renderBulkSelects()
     renderNotes()
   })
 }
@@ -121,18 +144,29 @@ function visibleNotes () {
   if (currentFolder === 'unfiled') list = list.filter(n => !n.folderId)
   else if (currentFolder !== 'all') list = list.filter(n => String(n.folderId) === String(currentFolder))
   if (currentTag) list = list.filter(n => (n.userTags || []).indexOf(currentTag) >= 0)
+  if (searchIds) list = list.filter(n => searchIds.has(n.id))
   return list
 }
 
-// populate the "filter by tag" dropdown from the current notes' user-tags
-function renderTagFilter () {
-  const $sel = $('#dashboard-tags')
-  if (!$sel.length) return
-  const allTags = Array.from(new Set([].concat.apply([], notes.map(n => n.userTags || [])))).sort()
+// render the sidebar tag-filter chips from the current notes' user-tags
+function renderTags () {
+  const $box = $('#dashboard-tag-filter')
+  if (!$box.length) return
+  const counts = {}
+  notes.forEach(n => (n.userTags || []).forEach(t => { counts[t] = (counts[t] || 0) + 1 }))
+  const allTags = Object.keys(counts).sort()
   if (allTags.indexOf(currentTag) < 0) currentTag = ''
-  $sel.empty().append($('<option>', { value: '', text: 'All tags' }))
-  allTags.forEach(t => $sel.append($('<option>', { value: t, text: t })))
-  $sel.val(currentTag)
+  $box.empty()
+  const $all = $('<a href="#" class="dash-tag-filter-chip" data-tag=""></a>').text('All')
+  if (currentTag === '') $all.addClass('active')
+  $box.append($all)
+  allTags.forEach(t => {
+    const $chip = $('<a href="#" class="dash-tag-filter-chip"></a>').attr('data-tag', t).text(t)
+    $chip.append($('<span class="dash-tag-filter-count"></span>').text(counts[t]))
+    if (currentTag === t) $chip.addClass('active')
+    $box.append($chip)
+  })
+  if (!allTags.length) $box.append($('<span class="dash-tag-empty"></span>').text('No tags yet'))
 }
 
 function renderFolders () {
@@ -148,8 +182,8 @@ function renderFolders () {
     const $li = $(`<li data-folder-row data-folder="${folder.id}">
         <a href="#" data-folder="${folder.id}">
           <span><i class="fa fa-folder-o"></i> <span class="folder-name"></span></span>
+          <span class="folder-count" data-count="${folder.id}"></span>
           <span class="folder-actions">
-            <span class="folder-count" data-count="${folder.id}"></span>
             <i class="fa fa-pencil dash-rename-folder" title="Rename"></i>
             <i class="fa fa-trash dash-delete-folder" title="Delete"></i>
           </span>
@@ -168,7 +202,7 @@ function renderFolders () {
 }
 
 function renderNotes () {
-  renderTagFilter()
+  renderTags()
   const list = visibleNotes()
   noteList.clear()
   list.forEach(note => {
@@ -178,16 +212,27 @@ function renderNotes () {
       timestamp: note.lastchangeAt ? new Date(note.lastchangeAt).getTime() : 0
     })
   })
-  // pinned first, then newest
+  // pinned first, then the chosen sort within each group
   noteList.sort('', {
     sortFunction (a, b) {
       const na = noteByEncoded(a.values().noteid)
       const nb = noteByEncoded(b.values().noteid)
       if (na && nb && na.pinned !== nb.pinned) return na.pinned ? -1 : 1
-      return (b.values().timestamp || 0) - (a.values().timestamp || 0)
+      if (currentSort === 'title') return (na && na.text ? na.text : '').localeCompare(nb && nb.text ? nb.text : '', undefined, { sensitivity: 'base' })
+      return sortTime(nb) - sortTime(na)
     }
   })
   checkEmpty()
+  syncSelectionUI()
+}
+
+function sortTime (note) {
+  if (!note) return 0
+  let v
+  if (currentSort === 'opened') v = note.lastReadAt
+  else if (currentSort === 'created') v = note.createdAt
+  else v = note.lastchangeAt || note.createdAt // 'edited'
+  return v ? new Date(v).getTime() : 0
 }
 
 function noteByEncoded (encodedId) {
@@ -224,8 +269,94 @@ function refreshMoveSelects () {
   })
 }
 
+// --- bulk select mode ---
+
+function renderBulkSelects () {
+  let folderHtml = '<option value="">Move to folder…</option><option value="__unfiled__">— Unfiled —</option>'
+  folders.forEach(f => { folderHtml += `<option value="${f.id}">${escapeHtml(f.name)}</option>` })
+  $('.dash-bulk-folder').html(folderHtml)
+  let spaceHtml = '<option value="">Add to space…</option>'
+  spaces.forEach(s => { spaceHtml += `<option value="${s.id}">${escapeHtml(s.name)}</option>` })
+  $('.dash-bulk-space').html(spaceHtml)
+}
+
+function syncSelectionUI () {
+  noteList.items.forEach(item => {
+    if (!item.visible()) return
+    const $el = $(item.elm)
+    const checked = selectedIds.has(item.values().noteid)
+    $el.find('.dash-note-check').prop('checked', checked)
+    $el.toggleClass('dash-checked', checked)
+  })
+  $('#dashboard-bulk-count').text(selectedIds.size + ' selected')
+  $('#dashboard-bulk-bar').toggle(selectMode)
+  const visibleIds = noteList.items.filter(i => i.visible()).map(i => i.values().noteid)
+  $('#dashboard-select-all').prop('checked', visibleIds.length > 0 && visibleIds.every(id => selectedIds.has(id)))
+}
+
+function setSelectMode (on) {
+  selectMode = on
+  $('#dashboard-notes').toggleClass('selecting', on)
+  $('#dash-select-toggle').toggleClass('active', on)
+  if (!on) selectedIds.clear()
+  syncSelectionUI()
+}
+
+function runBulk (action, value) {
+  const ids = Array.from(selectedIds)
+  if (!ids.length) return Promise.resolve()
+  return apiSend('POST', '/api/notes/bulk', { ids, action, value }).then(({ ok }) => {
+    if (ok) {
+      selectedIds.clear()
+      return load()
+    }
+  })
+}
+
 function escapeHtml (str) {
   return $('<div>').text(str == null ? '' : str).html()
+}
+
+// compact relative time, e.g. "just now", "3h ago", "2d ago", "Mar 4"
+function formatRelative (ts) {
+  if (!ts) return ''
+  const then = new Date(ts).getTime()
+  if (isNaN(then)) return ''
+  const secs = Math.floor((Date.now() - then) / 1000)
+  if (secs < 45) return 'just now'
+  const mins = Math.floor(secs / 60)
+  if (mins < 60) return mins + 'm ago'
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return hours + 'h ago'
+  const days = Math.floor(hours / 24)
+  if (days < 7) return days + 'd ago'
+  const d = new Date(then)
+  const sameYear = d.getFullYear() === new Date().getFullYear()
+  return d.toLocaleDateString(undefined, sameYear ? { month: 'short', day: 'numeric' } : { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+// show an unresolved-comment badge (count) that opens the note when clicked
+function renderCommentBadge ($el, note) {
+  const $b = $el.find('.dash-comment-badge')
+  if (!$b.length) return
+  const n = note.commentCount || 0
+  if (n > 0) {
+    $b.find('.dash-comment-count').text(n)
+    $b.attr('href', `${baseurl}/${note.id}`).attr('title', `${n} unresolved comment${n > 1 ? 's' : ''}`).show()
+  } else {
+    $b.hide()
+  }
+}
+
+// build the "edited … · read …" meta into a row's .dash-note-time element
+function renderNoteTime ($el, note) {
+  const $time = $el.find('.dash-note-time')
+  if (!$time.length) return
+  const parts = []
+  const editedAt = note.lastchangeAt || note.createdAt
+  if (editedAt) parts.push(`<span title="Last edited ${new Date(editedAt).toLocaleString()}"><i class="fa fa-pencil"></i> ${formatRelative(editedAt)}</span>`)
+  if (note.lastReadAt) parts.push(`<span title="Last opened ${new Date(note.lastReadAt).toLocaleString()}"><i class="fa fa-eye"></i> ${formatRelative(note.lastReadAt)}</span>`)
+  $time.html(parts.join(''))
 }
 
 function checkEmpty () {
@@ -251,7 +382,13 @@ noteList.on('updated', () => {
     $el.find('.dash-note-link').attr('href', `${baseurl}/${note.id}`)
     // pin state
     const $pin = $el.find('.dash-pin')
-    if (note.pinned) $pin.addClass('active'); else $pin.removeClass('active')
+    if (note.pinned) {
+      $pin.addClass('active')
+      $el.find('.dash-pin-badge').show()
+    } else {
+      $pin.removeClass('active')
+      $el.find('.dash-pin-badge').hide()
+    }
     // template state
     const $template = $el.find('.dash-template')
     if (note.template) {
@@ -289,7 +426,73 @@ noteList.on('updated', () => {
     }
     // space add select
     $el.find('.dash-space-add').html(spaceAddSelectHtml(note))
+    // last edit / last read + unresolved-comment badge
+    renderNoteTime($el, note)
+    renderCommentBadge($el, note)
   })
+  syncSelectionUI()
+})
+
+// --- sort + bulk select ---
+
+$('#dashboard-sort').on('change', function () {
+  currentSort = $(this).val()
+  renderNotes()
+})
+
+$('#dash-select-toggle').on('click', function () { setSelectMode(!selectMode) })
+
+// in select mode, clicking a row (anywhere, incl. its checkbox/link) toggles it
+$('#dashboard-notes').on('click', '.dash-note', function (e) {
+  if (!selectMode) return
+  if ($(e.target).closest('a').length) e.preventDefault()
+  const id = $(this).find('.noteid').text()
+  if (selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id)
+  syncSelectionUI()
+})
+
+$('#dashboard-select-all').on('change', function () {
+  const on = $(this).prop('checked')
+  noteList.items.filter(i => i.visible()).forEach(i => {
+    const id = i.values().noteid
+    if (on) selectedIds.add(id); else selectedIds.delete(id)
+  })
+  syncSelectionUI()
+})
+
+$('#dashboard-bulk-bar').on('change', '.dash-bulk-folder', function () {
+  const v = $(this).val()
+  if (v === '') return
+  runBulk('folder', v === '__unfiled__' ? null : v)
+})
+
+$('#dashboard-bulk-bar').on('change', '.dash-bulk-space', function () {
+  const v = $(this).val()
+  if (!v) return
+  runBulk('space', v)
+})
+
+$('#dashboard-bulk-bar').on('submit', '.dash-bulk-tag', function (e) {
+  e.preventDefault()
+  const tag = $(this).find('.dash-bulk-tag-input').val().trim().toLowerCase()
+  if (!tag) return
+  runBulk('tag', tag)
+})
+
+$('#dashboard-bulk-bar').on('click', '.dash-bulk-pin', function () {
+  runBulk('pin', $(this).data('pin') === 1)
+})
+
+$('#dashboard-bulk-bar').on('click', '.dash-bulk-delete', function () {
+  const n = selectedIds.size
+  if (!n) return
+  // eslint-disable-next-line no-alert
+  if (!window.confirm(`Delete ${n} note${n > 1 ? 's' : ''}? This cannot be undone.`)) return
+  runBulk('delete', null).then(() => setSelectMode(false))
+})
+
+$('#dashboard-bulk-bar').on('click', '.dash-bulk-clear', function () {
+  setSelectMode(false)
 })
 
 // --- browse view ---
@@ -334,9 +537,8 @@ function renderBrowseSpaces () {
     const $li = $(`<li data-space-row data-space="${space.id}">
         <a href="#" data-space="${space.id}">
           <span><i class="fa fa-share-alt"></i> <span class="space-name"></span></span>
-          <span class="space-actions">
-            <span class="folder-count" data-count="${space.id}"></span>
-          </span>
+          <span class="folder-count" data-count="${space.id}"></span>
+          <span class="space-actions"></span>
         </a>
       </li>`)
     $li.find('.space-name').text(space.name)
@@ -358,7 +560,8 @@ function renderBrowseSpaces () {
 
 function renderBrowseNotes () {
   browseList.clear()
-  browseNotes.forEach(note => {
+  const list = browseSearchIds ? browseNotes.filter(n => browseSearchIds.has(n.id)) : browseNotes
+  list.forEach(note => {
     browseList.add({
       noteid: note.id,
       text: note.text || 'Untitled',
@@ -410,6 +613,9 @@ browseList.on('updated', () => {
         $spaces.append(' ')
       })
     }
+    // last edit / last read + unresolved-comment badge
+    renderNoteTime($el, note)
+    renderCommentBadge($el, note)
   })
 })
 
@@ -481,7 +687,18 @@ $('#browse-spaces').on('click', '.dash-delete-space', function (e) {
 })
 
 // browse search keeps the empty-state in sync
-$('#browse-list .search').on('keyup', () => { setTimeout(checkBrowseEmpty, 0) })
+let browseSearchTimer = null
+$('#browse-list .dash-search').on('input', function () {
+  const q = $(this).val().trim()
+  clearTimeout(browseSearchTimer)
+  browseSearchTimer = setTimeout(() => {
+    if (!q) { browseSearchIds = null; renderBrowseNotes(); return }
+    const sp = currentSpace === 'all' ? '' : `&space=${encodeURIComponent(currentSpace)}`
+    apiGet(`/api/browse/search?q=${encodeURIComponent(q)}${sp}`)
+      .then(data => { browseSearchIds = new Set((data && data.ids) || []); renderBrowseNotes() })
+      .catch(() => { browseSearchIds = new Set(); renderBrowseNotes() })
+  }, 250)
+})
 
 // --- actions ---
 
@@ -534,6 +751,11 @@ $('#dashboard-folders').on('click', '.dash-delete-folder', function (e) {
       load()
     }
   })
+})
+
+// keep the organize dropdown open while interacting with its selects/inputs
+$('#dashboard-notes').on('click', '.dash-menu-panel', function (e) {
+  e.stopPropagation()
 })
 
 // move note to folder
@@ -772,9 +994,10 @@ $('#members-modal').on('click', '.member-leave', function (e) {
   })
 })
 
-// filter notes by tag
-$('#dashboard-tags').on('change', function () {
-  currentTag = $(this).val()
+// filter notes by tag (sidebar chips)
+$('#dashboard-tag-filter').on('click', '.dash-tag-filter-chip', function (e) {
+  e.preventDefault()
+  currentTag = $(this).attr('data-tag')
   renderNotes()
 })
 
@@ -850,7 +1073,17 @@ $('#dashboard-notes').on('click', '.space-x', function (e) {
 })
 
 // search keeps the empty-state in sync
-$('.search').on('keyup', () => { setTimeout(checkEmpty, 0) })
+let searchTimer = null
+$('#dashboard-list .dash-search').on('input', function () {
+  const q = $(this).val().trim()
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    if (!q) { searchIds = null; renderNotes(); return }
+    apiGet(`/api/notes/search?q=${encodeURIComponent(q)}`)
+      .then(data => { searchIds = new Set((data && data.ids) || []); renderNotes() })
+      .catch(() => { searchIds = new Set(); renderNotes() })
+  }, 250)
+})
 
 // prevent empty link change hash
 $('a[href="#"]').click(function (e) { e.preventDefault() })
